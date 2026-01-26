@@ -1,7 +1,17 @@
 [project]
+authors = [
+  { name = "Sebastijan Zindl", email = "sebastijanzindl@protonmail.com" },
+  { name = "Petar Pejoski", email = "petar.pejoski32@gmail.com" },
+]
 name = "rag-over-finetune"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "langchain>=1.2.7",
+    "langchain-community>=0.4.1",
+    "langchain-text-splitters>=1.1.0",
+    "python-dotenv>=1.2.1",
+    "tiktoken>=0.12.0",
+]

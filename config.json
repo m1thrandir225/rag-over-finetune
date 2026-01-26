@@ -1,0 +1,27 @@
+{
+  "embedding_model": "BAAI/bge-m3",
+  "llm_model": "gemma3",
+  "chunk_size": 512,
+  "chunk_overlap": 50,
+  "top_k": 3,
+  "chroma_persist_dir": "./chroma_db",
+  "chunk_mode": "text",
+  "chunk_document_options": {
+    "json_mode_options": {},
+    "html_mode_options": {},
+    "markdown_mode_options": {
+      "return_each_line": false,
+      "strip_headers": true
+    }
+  },
+  "chunk_length_options": {
+    "mode": "char",
+    "char_mode_options": {
+      "separator": "\n\n",
+      "is_separator_regex": false
+    },
+    "token_mode_options": {
+      "encoding_name": "cl100k_base"
+    }
+  }
+}
