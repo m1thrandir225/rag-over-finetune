@@ -9,8 +9,8 @@ class Config:
 
     embedding_model: str
     llm_model: str
-    chunk_size: int = 512
-    chunk_overlap: int = 50
-    top_k: int = 3
-    chroma_collection_name: str = "vector_collection"
-    chroma_persist_dir: str = "./chroma_db"
+    chunk_size: int
+    chunk_overlap: int
+    top_k: int
+    chroma_collection_name: str
+    chroma_persist_dir: str
