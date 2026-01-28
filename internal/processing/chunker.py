@@ -25,6 +25,13 @@ class LengthType(Enum):
 
 
 class Chunker:
+    """
+    Chunker is responsible for splitting 'chunking' text into smaller parts which then are transformed into embeddings and
+    stored in a vector store.
+
+    The goal is to support all text splitting structures from Langchain with comprehensive options passed by the 'config.json' file.
+    """
+
     def __init__(self, chunk_size: int, overlap: int) -> None:
         self.chunk_size: int = chunk_size
         self.chunk_overlap: int = overlap
@@ -32,7 +39,7 @@ class Chunker:
     def chunk_text(self, text: str, mode: ChunkMode = ChunkMode.TEXT) -> list[str]:
         """
         Splits a text into overlapping chunks.
-        This is character based chunking.
+        Supports all three kinds of text splitting from Langchain.
         """
         match mode:
             case ChunkMode.TEXT:
@@ -78,11 +85,13 @@ class Chunker:
     ) -> list[str]:
         match type:
             case DocumentType.JSON:
-                splitter = RecursiveJsonSplitter(max_chunk_size=self.chunk_size)
+                # TODO: implement
+                pass
             case DocumentType.HTML:
+                # TODO: implement
                 pass
             case DocumentType.MARKDOWN:
+                # TODO: implement
                 pass
 
-        # TODO: return proper chunks from each type
         return []

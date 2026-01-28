@@ -4,6 +4,7 @@
   "chunk_size": 512,
   "chunk_overlap": 50,
   "top_k": 3,
+  "chroma_collection_name": "vector_collection",
   "chroma_persist_dir": "./chroma_db",
   "chunk_mode": "text",
   "chunk_document_options": {
