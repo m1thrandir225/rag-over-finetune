@@ -14,3 +14,7 @@ class Config:
     top_k: int
     chroma_collection_name: str
     chroma_persist_dir: str
+
+    # Embedding Manager
+    embedding_device: str
+    normalize_embeddings: bool
