@@ -3,7 +3,6 @@ from enum import Enum
 from langchain_text_splitters import (
     CharacterTextSplitter,
     RecursiveCharacterTextSplitter,
-    RecursiveJsonSplitter,
 )
 
 
