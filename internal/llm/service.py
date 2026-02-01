@@ -38,7 +38,9 @@ class LLMService:
         """
         Generate a response given a question and a context
         """
-        prompt = self.config.prompt_template.format(
+
+        full_template = f"{self.config.system_prompt}\n\n{self.config.prompt_template}"
+        prompt = full_template.format(
             context=context,
             question=question,
         )

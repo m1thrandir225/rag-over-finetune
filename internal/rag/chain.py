@@ -38,7 +38,8 @@ class RAGChain:
     def build(self) -> Runnable:
         retriever = self.vector_store.as_retriever()
 
-        prompt = PromptTemplate.from_template(self.config.prompt_template)
+        full_template = f"{self.config.system_prompt}\n\n{self.config.prompt_template}"
+        prompt = PromptTemplate.from_template(full_template)
 
         chain = (
             {
