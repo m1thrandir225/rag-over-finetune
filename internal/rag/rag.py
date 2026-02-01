@@ -1,14 +1,15 @@
 from typing import List, Optional
-from langchain_core.runnables import Runnable
+
 from langchain_core.documents import Document
+from langchain_core.runnables import Runnable
 
 from ..config import Config
-from ..llm import LLMService
-from ..processing import EmbeddingService, Chunker
 from ..importer import DocumentImporter
-from .query_result import QueryResult
-from .chain import RAGChain
+from ..llm import LLMService
+from ..processing import Chunker, EmbeddingService
 from ..store import VectorStoreManager
+from .chain import RAGChain
+from .query_result import QueryResult
 
 
 class RAG:
@@ -100,14 +101,16 @@ class RAG:
         Import and add a single file to the vector store
         """
 
-        documents = self._document_importer.import_document(file_path, encoding=encoding)
+        documents = self._document_importer.import_document(
+            file_path, encoding=encoding
+        )
         return self.add_documents(documents)
 
     def add_directory(
         self,
         directory_path: str,
         glob_pattern: str = "**/*.txt",
-        encoding: str = "utf-8"
+        encoding: str = "utf-8",
     ) -> list[str]:
         """
         Import and add all matching files from a directory to the vector store
@@ -128,7 +131,7 @@ class RAG:
     def query(self, question: str, include_scores: bool = False) -> QueryResult:
         answer = self.chain.invoke(question)
 
-        sources = []
+        sources: list[str] | list[dict] = []
 
         if include_scores:
             source_docs = self._vector_store.similarity_search_with_score(question)
@@ -136,7 +139,7 @@ class RAG:
                 {
                     "content": doc.page_content,
                     "metadata": doc.metadata,
-                    "score": float(score)
+                    "score": float(score),
                 }
                 for doc, score in source_docs
             ]
@@ -146,13 +149,13 @@ class RAG:
             query=question,
         )
 
-
     def query_simple(self, question: str) -> str:
-        return self.query.invoke(question)
+        return self.chain.invoke(question)
 
     def search(self, query: str, k: int | None = None) -> list[Document]:
         return self._vector_store.similarity_search(query, k=k)
-        
 
-    def search_with_scores(self, query: str, k: int | None = None) -> list[tuple[Document, float]]:
+    def search_with_scores(
+        self, query: str, k: int | None = None
+    ) -> list[tuple[Document, float]]:
         return self._vector_store.similarity_search_with_score(query, k=k)

@@ -8,7 +8,7 @@ class QueryResult:
     """
 
     answer: str
-    sources: list[str] = field(default_factory=list)
+    sources: list[str] | list[dict] = field(default_factory=list)
 
     query: str = ""
 
