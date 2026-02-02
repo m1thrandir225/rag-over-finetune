@@ -1,14 +1,36 @@
 import json
 
-from .config import Config, ChunkDocumentOptions, ChunkLengthOptions
+from dotenv import load_dotenv
+
+from .config import ChunkDocumentOptions, ChunkLengthOptions, Config, LLMProvider
 
 
 class ConfigLoader:
     """
     Config Loader is resonsible for loading the config.json file and creating a frozen Config object
     """
-    def __init__(self, path: str) -> None:
+
+    def __init__(self, path: str, env_path: str = ".env") -> None:
         self.path: str = path
+        self.env_path: str = env_path
+        load_dotenv(self.env_path)
+
+    def _parse_provider(self, provider_str: str) -> LLMProvider:
+        """
+        Parse provider string to LLMProvider enum
+        """
+        provider_map = {
+            "ollama": LLMProvider.OLLAMA,
+            "openai": LLMProvider.OPENAI,
+            "anthropic": LLMProvider.ANTHROPIC,
+            "google": LLMProvider.GOOGLE,
+        }
+        provider = provider_map.get(provider_str.lower())
+        if provider is None:
+            raise ValueError(
+                f"Unknown LLM provider: {provider_str}. Supported: {list(provider_map.keys())}"
+            )
+        return provider
 
     def load_config(self) -> Config:
         try:
@@ -33,22 +55,42 @@ class ConfigLoader:
                         token_mode_options=len_opts.get("token_mode_options", {}),
                     )
 
+                provider_str = config_data.get("llm_provider", "ollama")
+                llm_provider = self._parse_provider(provider_str)
+
+                max_tokens_raw = config_data.get("llm_max_tokens")
+                llm_max_tokens = (
+                    int(max_tokens_raw) if max_tokens_raw is not None else None
+                )
+
                 return Config(
                     embedding_model=config_data["embedding_model"],
                     llm_model=config_data["llm_model"],
                     chunk_size=config_data.get("chunk_size", 512),
                     chunk_overlap=config_data.get("chunk_overlap", 50),
                     top_k=config_data.get("top_k", 3),
-                    chroma_collection_name=config_data.get("chroma_collection_name", "vector_collection"),
-                    chroma_persist_dir=config_data.get("chroma_persist_dir", "./chroma_db"),
+                    chroma_collection_name=config_data.get(
+                        "chroma_collection_name", "vector_collection"
+                    ),
+                    chroma_persist_dir=config_data.get(
+                        "chroma_persist_dir", "./chroma_db"
+                    ),
                     chunk_mode=config_data.get("chunk_mode", "text"),
                     chunk_document_options=chunk_doc_options,
                     chunk_length_options=chunk_len_options,
+                    llm_provider=llm_provider,
                     llm_url=config_data.get("llm_url", "http://localhost:11434"),
                     llm_temperature=config_data.get("llm_temperature", 0.75),
-                    system_prompt=config_data.get("system_prompt",""), #TODO: add default system prompt
-                    prompt_template=config_data.get("prompt_template",""), #TODO: add default prompt template
-                    embedding_device=config_data.get("embedding_device", "cpu"), #TODO: add embedding_device detection
+                    llm_max_tokens=llm_max_tokens,
+                    system_prompt=config_data.get(
+                        "system_prompt", ""
+                    ),  # TODO: add default system prompt
+                    prompt_template=config_data.get(
+                        "prompt_template", ""
+                    ),  # TODO: add default prompt template
+                    embedding_device=config_data.get(
+                        "embedding_device", "cpu"
+                    ),  # TODO: add embedding_device detection
                     normalize_embeddings=config_data.get("normalize_embeddings", True),
                 )
 

@@ -1,6 +1,10 @@
 {
   "embedding_model": "BAAI/bge-m3",
+  "llm_provider": "ollama",
   "llm_model": "gemma3",
+  "llm_url": "http://localhost:11434",
+  "llm_temperature": 0.7,
+  "llm_max_tokens": null,
   "chunk_size": 512,
   "chunk_overlap": 50,
   "top_k": 3,
@@ -24,5 +28,9 @@
     "token_mode_options": {
       "encoding_name": "cl100k_base"
     }
-  }
+  },
+  "system_prompt": "Ти си помошник кој одговара на прашања.\nКористи го САМО дадениот контекст за да одговориш на прашањето.\nАко одговорот не е во контекстот, кажи дека немаш доволно информации.\nОдговарај концизно и точно.",
+  "prompt_template": "Контекст:\n{context}\n\nПрашање: {question}\n\nОдговор:",
+  "embedding_device": "cpu",
+  "normalize_embeddings": true
 }

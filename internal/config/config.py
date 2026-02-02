@@ -1,5 +1,17 @@
 from dataclasses import dataclass
+from enum import Enum
 from typing import Optional
+
+
+class LLMProvider(str, Enum):
+    """
+    Currently supported providers
+    """
+
+    OLLAMA = "ollama"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GOOGLE = "google"
 
 
 @dataclass(frozen=True)
@@ -30,26 +42,18 @@ class Config:
     chroma_collection_name: str
     chroma_persist_dir: str
     chunk_mode: str  # "text", "length", or "document"
-    chunk_document_options: Optional[ChunkDocumentOptions] = None
-    chunk_length_options: Optional[ChunkLengthOptions] = None
+    chunk_document_options: Optional[ChunkDocumentOptions]
+    chunk_length_options: Optional[ChunkLengthOptions]
 
     # LLM Configuration
-    llm_url: str = "http://localhost:11434"
-    llm_temperature: float = 0.7
-    system_prompt: str = """Ти си помошник кој одговара на прашања.
-Користи го САМО дадениот контекст за да одговориш на прашањето.
-Ако одговорот не е во контекстот, кажи дека немаш доволно информации.
-Одговарај концизно и точно."""
+    llm_url: str
+    llm_temperature: float
+    llm_max_tokens: Optional[int]
+    system_prompt: str
+    llm_provider: LLMProvider
 
-    prompt_template: str = """
-    Контекст:
-{context}
-
-Прашање: {question}
-
-Одговор:
-"""
+    prompt_template: str
 
     # Embedding Manager
-    embedding_device: str = "cpu"
-    normalize_embeddings: bool = True
+    embedding_device: str
+    normalize_embeddings: bool

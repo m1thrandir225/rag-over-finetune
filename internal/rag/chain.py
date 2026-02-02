@@ -1,6 +1,6 @@
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnablePassthrough
 
 from ..config import Config
@@ -38,8 +38,12 @@ class RAGChain:
     def build(self) -> Runnable:
         retriever = self.vector_store.as_retriever()
 
-        full_template = f"{self.config.system_prompt}\n\n{self.config.prompt_template}"
-        prompt = PromptTemplate.from_template(full_template)
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.config.system_prompt),
+                ("human", self.config.prompt_template),
+            ]
+        )
 
         chain = (
             {
