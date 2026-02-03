@@ -9,4 +9,14 @@
 
 You can ignore the field `llm_url` if you are using an external LLM like ChatGPT.
 
+## Modes
+
+Currently there are two supported modes:
+- demo
+- interactive
+
+The `demo` mode runs a selected number of queries showcasing the capabilities of the system.
+
+The `interactive` mode is run using the `--interactive` CLI argument and allows a user to ask questions and gives responses back to the user.
+
 **NOTE**: WORK IN PROGRESS
