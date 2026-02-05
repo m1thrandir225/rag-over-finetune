@@ -5,7 +5,7 @@ from internal.config import ConfigLoader
 from internal.rag import RAG
 
 CONFIG_PATH = "./config.json"
-SAMPLE_DOCUMENTS_PATH = "./data/sample_documents.json"
+SAMPLE_DOCUMENTS_PATH = "./sample_data/sample_documents.json"
 
 TEST_QUERIES = [
     "Кој е главниот град на Македонија?",

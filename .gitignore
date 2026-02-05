@@ -20,3 +20,9 @@ htmlcov/
 
 # Environment variables
 .env
+
+# Data Folders 
+data/
+
+# Chroma DB
+chroma_db/
