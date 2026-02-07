@@ -1,13 +1,14 @@
-from typing import Optional
+import json
 from pathlib import Path
+from typing import Optional
 
-from langchain_core.documents import Document
 from langchain_community.document_loaders import (
-    TextLoader,
     DirectoryLoader,
-    PyPDFLoader,
     Docx2txtLoader,
+    PyPDFLoader,
+    TextLoader,
 )
+from langchain_core.documents import Document
 
 from .document_type import DocumentType
 
@@ -20,25 +21,18 @@ class DocumentImporter:
     def __init__(self) -> None:
         pass
 
-    def load_text_file(
-        self,
-        file_path: str,
-        encoding: str = "utf-8"
-    ) -> list[Document]:
+    def load_text_file(self, file_path: str, encoding: str = "utf-8") -> list[Document]:
         loader = TextLoader(file_path, encoding=encoding)
         return loader.load()
 
     def load_directory(
-        self,
-        directory: str,
-        glob_pattern: str = "**/*.txt",
-        encoding: str = "utf-8"
+        self, directory: str, glob_pattern: str = "**/*.txt", encoding: str = "utf-8"
     ) -> list[Document]:
         loader = DirectoryLoader(
             directory,
             glob=glob_pattern,
             loader_cls=TextLoader,
-            loader_kwargs={"encoding": encoding}
+            loader_kwargs={"encoding": encoding},
         )
         return loader.load()
 
@@ -50,18 +44,108 @@ class DocumentImporter:
         loader = Docx2txtLoader(file_path)
         return loader.load()
 
+    @staticmethod
+    def load_json_records(
+        file_path: str,
+        encoding: str = "utf-8",
+    ) -> list[dict]:
+        """
+        Load records from either a JSON file
+        TODO: fix the return type to be a list of predefined record types
+        """
+        with open(file_path, "r", encoding=encoding) as f:
+            data = json.load(f)
+
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            return [data]
+
+        raise ValueError(
+            f"Unexpected JSON structure in {file_path}: "
+            f"expected array or object, got {type(data).__name__}"
+        )
+
+    @staticmethod
+    def load_jsonl_records(
+        file_path: str,
+        encoding: str = "utf-8",
+    ) -> list[dict]:
+        """
+        Load records from a .jsonl file
+        TODO: fix the return type to be a list of predefined record types
+        """
+        records: list[dict] = []
+        with open(file_path, "r", encoding=encoding) as f:
+            for line_num, line in enumerate(f, start=1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError as e:
+                    raise ValueError(
+                        f"Invalid JSON on line {line_num} in {file_path}: {e}"
+                    ) from e
+                if not isinstance(record, dict):
+                    raise ValueError(
+                        f"Expected object on line {line_num} in {file_path}, "
+                        f"got {type(record).__name__}"
+                    )
+                records.append(record)
+        return records
+
+    def load_data_folder(
+        self,
+        folder_path: str,
+        encoding: str = "utf-8",
+    ) -> list[dict]:
+        """
+        Scan a folder for .json and .jsonl files and return all records
+        TODO: fix the return type to be a list of predefined record types
+        """
+        folder = Path(folder_path)
+        if not folder.is_dir():
+            return []
+
+        records: list[dict] = []
+
+        files = sorted(
+            p
+            for p in folder.iterdir()
+            if p.is_file() and p.suffix.lower() in (".json", ".jsonl")
+        )
+
+        for file_path in files:
+            suffix = file_path.suffix.lower()
+            try:
+                if suffix == ".json":
+                    file_records = self.load_json_records(
+                        str(file_path), encoding=encoding
+                    )
+                else:
+                    file_records = self.load_jsonl_records(
+                        str(file_path), encoding=encoding
+                    )
+                print(f"  Loaded {len(file_records)} records from {file_path.name}")
+                records.extend(file_records)
+            except (ValueError, json.JSONDecodeError) as e:
+                print(f"  Warning: skipping {file_path.name}: {e}")
+
+        return records
+
     def import_document(
         self,
         file_path: str,
         document_type: Optional[DocumentType] = None,
-        encoding: str = "utf-8"
+        encoding: str = "utf-8",
     ) -> list[Document]:
         """
         Import a single document based on file extension or explicit type.
         """
 
         path = Path(file_path)
-        
+
         if document_type is None:
             suffix = path.suffix.lower()
             if suffix == ".pdf":
@@ -71,13 +155,13 @@ class DocumentImporter:
             elif suffix == ".txt":
                 return self.load_text_file(file_path, encoding=encoding)
             else:
-                return self.load_text_file(file_path, encoding=encoding) # default to text loader for unknown
+                return self.load_text_file(file_path, encoding=encoding)
         else:
             match document_type:
                 case DocumentType.JSON:
-                    return self.load_text_file(file_path, encoding=encoding) # TODO: implement JSONLoader
+                    return self.load_text_file(file_path, encoding=encoding)
                 case DocumentType.CSV:
-                    return self.load_text_file(file_path, encoding=encoding) # TODO: implement CSVLoader
+                    return self.load_text_file(file_path, encoding=encoding)
                 case _:
                     return self.load_text_file(file_path, encoding=encoding)
 
@@ -85,7 +169,7 @@ class DocumentImporter:
         self,
         file_paths: list[str],
         document_type: Optional[DocumentType] = None,
-        encoding: str = "utf-8"
+        encoding: str = "utf-8",
     ) -> list[Document]:
         """
         Import multiple documents.

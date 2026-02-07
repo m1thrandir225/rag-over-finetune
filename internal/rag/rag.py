@@ -74,13 +74,19 @@ class RAG:
         """
         self._chain = None
 
-    def add_documents(self, documents: list[Document]) -> list[str]:
+    def add_documents(
+        self, documents: list[Document], use_batched_path: bool = True
+    ) -> list[str]:
         """
-        Add documents to the vector store after chunking them
+        Add documents to the vector store after chunking them.
         """
 
         chunks = self._chunker.split_documents(documents)
-        ids = self._vector_store.add_documents(chunks)
+        if use_batched_path:
+            ids = self._vector_store.add_documents_batched(chunks)
+        else:
+            ids = self._vector_store.add_documents(chunks)
+
         self._invalidate_chain()
         return ids
 
@@ -88,15 +94,18 @@ class RAG:
         self,
         texts: list[str],
         metadata: Optional[List[dict]] = None,
+        use_batched_path: bool = True,
     ) -> list[str]:
         """
-        Add raw texts to the vector store after creating documents and chunking them
+        Add raw texts to the vector store after creating documents and chunking them.
         """
 
         documents = self._chunker.create_documents(texts, metadata)
-        return self.add_documents(documents)
+        return self.add_documents(documents, use_batched_path=use_batched_path)
 
-    def add_file(self, file_path: str, encoding: str = "utf-8") -> list[str]:
+    def add_file(
+        self, file_path: str, encoding: str = "utf-8", use_batched_path: bool = True
+    ) -> list[str]:
         """
         Import and add a single file to the vector store
         """
@@ -104,13 +113,14 @@ class RAG:
         documents = self._document_importer.import_document(
             file_path, encoding=encoding
         )
-        return self.add_documents(documents)
+        return self.add_documents(documents, use_batched_path=use_batched_path)
 
     def add_directory(
         self,
         directory_path: str,
         glob_pattern: str = "**/*.txt",
         encoding: str = "utf-8",
+        use_batched_path: bool = True,
     ) -> list[str]:
         """
         Import and add all matching files from a directory to the vector store
@@ -119,7 +129,7 @@ class RAG:
         documents = self._document_importer.load_directory(
             directory_path, glob_pattern=glob_pattern, encoding=encoding
         )
-        return self.add_documents(documents)
+        return self.add_documents(documents, use_batched_path=use_batched_path)
 
     def clear(self) -> None:
         self._vector_store.clear()

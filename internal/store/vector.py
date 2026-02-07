@@ -1,10 +1,15 @@
 from typing import List, Optional
+from uuid import uuid4
 
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
+from tqdm import tqdm
 
 from ..config import Config
 from ..processing import EmbeddingService
+
+# Chroma's hard limit per upsert call
+_CHROMA_MAX_BATCH = 5_000
 
 
 class VectorStoreManager:
@@ -38,6 +43,58 @@ class VectorStoreManager:
             persist_directory=self.config.chroma_persist_dir,
         )
 
+    def add_documents_batched(
+        self,
+        documents: list[Document],
+        batch_size: int = _CHROMA_MAX_BATCH,
+    ) -> list[str]:
+        """
+        Embeds all documents in one pass, then insert the pre-computed vectors in batches,
+        avoids Chroma's internal re-embedding overhead.
+        """
+        texts = [doc.page_content for doc in documents]
+        metadatas = [doc.metadata for doc in documents]
+
+        return self.add_texts_batched(texts, metadatas, batch_size=batch_size)
+
+    def add_texts_batched(
+        self,
+        texts: list[str],
+        metadata: Optional[List[dict]] = None,
+        batch_size: int = _CHROMA_MAX_BATCH,
+    ) -> list[str]:
+        if not texts:
+            return []
+
+        metadatas = metadata or [{}] * len(texts)
+
+        # precompute all embeddings
+        # Note: sentence-transformers handles its own internal batching and shows a progress bar
+        print(f"Embedding {len(texts)} chunks...")
+        embeddings = self._embedding_service.embed_documents(texts)
+
+        collection = self.vector_store._collection
+        all_ids: list[str] = []
+        total = len(texts)
+
+        for start in tqdm(
+            range(0, total, batch_size),
+            desc="Inserting into Chroma",
+            unit="batch",
+        ):
+            end = min(start + batch_size, total)
+            batch_ids = [str(uuid4()) for _ in range(end - start)]
+
+            collection.add(
+                documents=texts[start:end],
+                metadatas=metadatas[start:end],  # type: ignore[arg-type]
+                embeddings=embeddings[start:end],  # type: ignore[arg-type]
+                ids=batch_ids,
+            )
+            all_ids.extend(batch_ids)
+
+        return all_ids
+
     def add_documents(self, documents: list[Document]) -> list[str]:
         return self.vector_store.add_documents(documents)
 
@@ -69,9 +126,10 @@ class VectorStoreManager:
         )
 
     def clear(self) -> None:
-        if self._vector_store is not None:
-            self._vector_store.delete_collection()
-            self._vector_store = None
+        # TODO: delete the chroma folder and add configuration to delete the folder
+        store = self.vector_store
+        store.delete_collection()
+        self._vector_store = None
 
         _ = self.vector_store
 

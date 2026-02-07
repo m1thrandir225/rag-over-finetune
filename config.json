@@ -1,5 +1,5 @@
 {
-  "embedding_model": "BAAI/bge-m3",
+  "embedding_model": "johnpaulbin/bge-m3-distilled",
   "llm_provider": "ollama",
   "llm_model": "gemma3",
   "llm_url": "http://localhost:11434",
@@ -31,6 +31,7 @@
   },
   "system_prompt": "Ти си помошник кој одговара на прашања.\nКористи го САМО дадениот контекст за да одговориш на прашањето.\nАко одговорот не е во контекстот, кажи дека немаш доволно информации.\nОдговарај концизно и точно.",
   "prompt_template": "Контекст:\n{context}\n\nПрашање: {question}\n\nОдговор:",
-  "embedding_device": "cpu",
+  "embedding_device": "auto",
+  "embedding_batch_size": 256,
   "normalize_embeddings": true
 }

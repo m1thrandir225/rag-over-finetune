@@ -57,3 +57,4 @@ class Config:
     # Embedding Manager
     embedding_device: str
     normalize_embeddings: bool
+    embedding_batch_size: int

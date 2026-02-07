@@ -3,6 +3,7 @@ import json
 from dotenv import load_dotenv
 
 from .config import ChunkDocumentOptions, ChunkLengthOptions, Config, LLMProvider
+from .device import _detect_best_device
 
 
 class ConfigLoader:
@@ -25,12 +26,22 @@ class ConfigLoader:
             "anthropic": LLMProvider.ANTHROPIC,
             "google": LLMProvider.GOOGLE,
         }
+
         provider = provider_map.get(provider_str.lower())
         if provider is None:
             raise ValueError(
                 f"Unknown LLM provider: {provider_str}. Supported: {list(provider_map.keys())}"
             )
         return provider
+
+    @staticmethod
+    def _resolve_device(device_str: str) -> str:
+        """
+        Resolve the embedding device.  'auto' triggers detection.
+        """
+        if device_str.lower() == "auto":
+            return _detect_best_device()
+        return device_str
 
     def load_config(self) -> Config:
         try:
@@ -56,9 +67,11 @@ class ConfigLoader:
                     )
 
                 provider_str = config_data.get("llm_provider", "ollama")
+
                 llm_provider = self._parse_provider(provider_str)
 
                 max_tokens_raw = config_data.get("llm_max_tokens")
+
                 llm_max_tokens = (
                     int(max_tokens_raw) if max_tokens_raw is not None else None
                 )
@@ -88,12 +101,12 @@ class ConfigLoader:
                     prompt_template=config_data.get(
                         "prompt_template", ""
                     ),  # TODO: add default prompt template
-                    embedding_device=config_data.get(
-                        "embedding_device", "cpu"
-                    ),  # TODO: add embedding_device detection
+                    embedding_device=self._resolve_device(
+                        config_data.get("embedding_device", "auto")
+                    ),
                     normalize_embeddings=config_data.get("normalize_embeddings", True),
+                    embedding_batch_size=config_data.get("embedding_batch_size", 256),
                 )
-
         except FileNotFoundError:
             print(f"Error: The config file '{self.path}' was not found.")
             exit()

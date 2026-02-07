@@ -6,6 +6,10 @@ from ..config import Config
 
 
 class EmbeddingService:
+    """
+    Responsible for creating and configuring the embedding model
+    """
+
     def __init__(self, config: Config):
         self._config = config
         self._embeddings: Optional[HuggingFaceEmbeddings] = None
@@ -30,8 +34,10 @@ class EmbeddingService:
         """
 
         model_kwargs: dict[str, Any] = {"device": self._config.embedding_device}
+
         encode_kwargs: dict[str, Any] = {
-            "normalize_embeddings": self._config.normalize_embeddings
+            "normalize_embeddings": self._config.normalize_embeddings,
+            "batch_size": self._config.embedding_batch_size,
         }
 
         # e5 models need query prefix in prompt
