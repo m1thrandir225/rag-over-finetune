@@ -1,10 +1,29 @@
 import json
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 from .config import ChunkDocumentOptions, ChunkLengthOptions, Config, LLMProvider
 from .device import _detect_best_device
 
+_system_prompt_path = Path("prompts/system_prompt.txt")
+_template_path = Path("prompts/prompt_template.txt")
+
+_system_prompt_fallback=(
+    "Ти си помошник кој одговара на прашања.\n"
+    "Користи го САМО дадениот контекст за да одговориш на прашањето.\n"
+    "Ако одговорот не е во контекстот, СЕКОГАШ кажи дека немаш доволно информации на темата.\n"
+    "Одговарај точно и концизно."
+)
+_template_fallback=(
+    "Контекст:\n{context}\n\nПрашање: {question}\n\nОдговор:"
+)
+
+def _load_prompt_file (path: Path, fallback: str) -> str:
+    try:
+        return path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return fallback
 
 class ConfigLoader:
     """
@@ -45,7 +64,7 @@ class ConfigLoader:
 
     def load_config(self) -> Config:
         try:
-            with open(self.path, "r") as config_file:
+            with open(self.path, "r", encoding="utf-8") as config_file:
                 config_data = json.load(config_file)
 
                 chunk_doc_options = None
@@ -76,6 +95,13 @@ class ConfigLoader:
                     int(max_tokens_raw) if max_tokens_raw is not None else None
                 )
 
+                default_system_prompt = _load_prompt_file(
+                    _system_prompt_path, _system_prompt_fallback
+                )
+                default_prompt_template = _load_prompt_file(
+                    _template_path, _template_fallback
+                )
+
                 return Config(
                     embedding_model=config_data["embedding_model"],
                     llm_model=config_data["llm_model"],
@@ -96,11 +122,11 @@ class ConfigLoader:
                     llm_temperature=config_data.get("llm_temperature", 0.75),
                     llm_max_tokens=llm_max_tokens,
                     system_prompt=config_data.get(
-                        "system_prompt", ""
-                    ),  # TODO: add default system prompt
+                        "system_prompt", default_system_prompt
+                    ),  # TODO: check default system prompt
                     prompt_template=config_data.get(
-                        "prompt_template", ""
-                    ),  # TODO: add default prompt template
+                        "prompt_template", default_prompt_template
+                    ),  # TODO: check default prompt template
                     embedding_device=self._resolve_device(
                         config_data.get("embedding_device", "auto")
                     ),
