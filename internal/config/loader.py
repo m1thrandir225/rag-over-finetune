@@ -121,12 +121,8 @@ class ConfigLoader:
                     llm_url=config_data.get("llm_url", "http://localhost:11434"),
                     llm_temperature=config_data.get("llm_temperature", 0.75),
                     llm_max_tokens=llm_max_tokens,
-                    system_prompt=config_data.get(
-                        "system_prompt", default_system_prompt
-                    ),  # TODO: check default system prompt
-                    prompt_template=config_data.get(
-                        "prompt_template", default_prompt_template
-                    ),  # TODO: check default prompt template
+                    system_prompt=default_system_prompt,  # TODO: check default system prompt
+                    prompt_template= default_prompt_template,  # TODO: check default prompt template
                     embedding_device=self._resolve_device(
                         config_data.get("embedding_device", "auto")
                     ),
