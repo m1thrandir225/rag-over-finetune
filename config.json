@@ -29,8 +29,6 @@
       "encoding_name": "cl100k_base"
     }
   },
-  "system_prompt": "Ти си помошник кој одговара на прашања.\nКористи го САМО дадениот контекст за да одговориш на прашањето.\nАко одговорот не е во контекстот, кажи дека немаш доволно информации.\nОдговарај концизно и точно.",
-  "prompt_template": "Контекст:\n{context}\n\nПрашање: {question}\n\nОдговор:",
   "embedding_device": "auto",
   "embedding_batch_size": 256,
   "normalize_embeddings": true
