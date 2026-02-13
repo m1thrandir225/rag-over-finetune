@@ -9,6 +9,8 @@ from langchain_community.document_loaders import (
     TextLoader,
 )
 from langchain_core.documents import Document
+from pydantic import ValidationError
+from vezilka_schemas import Record
 
 from .document_type import DocumentType
 
@@ -48,67 +50,80 @@ class DocumentImporter:
     def load_json_records(
         file_path: str,
         encoding: str = "utf-8",
-    ) -> list[dict]:
+    ) -> list[Record]:
         """
-        Load records from either a JSON file
-        TODO: fix the return type to be a list of predefined record types
+        Load records from a JSON file, validating each against the Record schema.
         """
         with open(file_path, "r", encoding=encoding) as f:
             data = json.load(f)
 
+        raw_records: list[dict]
         if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            return [data]
+            raw_records = data
+        elif isinstance(data, dict):
+            raw_records = [data]
+        else:
+            raise ValueError(
+                f"Unexpected JSON structure in {file_path}: "
+                f"expected array or object, got {type(data).__name__}"
+            )
 
-        raise ValueError(
-            f"Unexpected JSON structure in {file_path}: "
-            f"expected array or object, got {type(data).__name__}"
-        )
+        records: list[Record] = []
+        for i, raw in enumerate(raw_records):
+            try:
+                records.append(Record.model_validate(raw))
+            except ValidationError as e:
+                raise ValueError(
+                    f"Invalid record at index {i} in {file_path}: {e}"
+                ) from e
+        return records
 
     @staticmethod
     def load_jsonl_records(
         file_path: str,
         encoding: str = "utf-8",
-    ) -> list[dict]:
+    ) -> list[Record]:
         """
-        Load records from a .jsonl file
-        TODO: fix the return type to be a list of predefined record types
+        Load records from a .jsonl file, validating each against the Record schema.
         """
-        records: list[dict] = []
+        records: list[Record] = []
         with open(file_path, "r", encoding=encoding) as f:
             for line_num, line in enumerate(f, start=1):
                 line = line.strip()
                 if not line:
                     continue
                 try:
-                    record = json.loads(line)
+                    raw = json.loads(line)
                 except json.JSONDecodeError as e:
                     raise ValueError(
                         f"Invalid JSON on line {line_num} in {file_path}: {e}"
                     ) from e
-                if not isinstance(record, dict):
+                if not isinstance(raw, dict):
                     raise ValueError(
                         f"Expected object on line {line_num} in {file_path}, "
-                        f"got {type(record).__name__}"
+                        f"got {type(raw).__name__}"
                     )
-                records.append(record)
+                try:
+                    records.append(Record.model_validate(raw))
+                except ValidationError as e:
+                    raise ValueError(
+                        f"Invalid record on line {line_num} in {file_path}: {e}"
+                    ) from e
         return records
 
     def load_data_folder(
         self,
         folder_path: str,
         encoding: str = "utf-8",
-    ) -> list[dict]:
+    ) -> list[Record]:
         """
-        Scan a folder for .json and .jsonl files and return all records
-        TODO: fix the return type to be a list of predefined record types
+        Scan a folder for .json and .jsonl files and return all records.
         """
         folder = Path(folder_path)
         if not folder.is_dir():
             return []
 
-        records: list[dict] = []
+        records: list[Record] = []
 
         files = sorted(
             p
@@ -129,7 +144,7 @@ class DocumentImporter:
                     )
                 print(f"  Loaded {len(file_records)} records from {file_path.name}")
                 records.extend(file_records)
-            except (ValueError, json.JSONDecodeError) as e:
+            except (ValueError, json.JSONDecodeError, ValidationError) as e:
                 print(f"  Warning: skipping {file_path.name}: {e}")
 
         return records

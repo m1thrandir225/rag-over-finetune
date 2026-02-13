@@ -1,7 +1,8 @@
-import json
 import os
 from dataclasses import replace
 from typing import Callable
+
+from vezilka_schemas import Record
 
 from internal.config import Config, ConfigLoader
 from internal.constants import DEFAULT_TEST_QUERIES
@@ -13,10 +14,9 @@ from .context import CLIContext
 
 def load_sample_documents(path: str) -> list[dict]:
     """
-    Load sample documents from a JSON file
+    Load sample documents from a JSON file (Record format).
     """
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return DocumentImporter.load_json_records(path)
 
 
 def parse_documents(docs: list[dict]) -> tuple[list[str], list[dict]]:
@@ -59,12 +59,12 @@ def load_all_documents(
     """
     Load documents from sample file and data folder
     """
-    all_records: list[dict] = []
+    all_records: list[Record] = []
 
     if os.path.isfile(sample_path):
-        sample_docs = load_sample_documents(sample_path)
-        print_fn(f"  Loaded {len(sample_docs)} records from sample_documents.json")
-        all_records.extend(sample_docs)
+        sample_records = load_sample_documents(sample_path)
+        print_fn(f"  Loaded {len(sample_records)} records from sample_documents.json")
+        all_records.extend(sample_records)
 
     if os.path.isdir(data_path):
         print_fn(f"\nDetected data folder: {data_path}")
@@ -73,7 +73,8 @@ def load_all_documents(
     else:
         print_fn(f"\nNo data folder found at {data_path} — skipping.")
 
-    return parse_documents(all_records)
+    docs = [r.to_dict() for r in all_records]
+    return parse_documents(docs)
 
 
 def bootstrap_rag(
@@ -303,4 +304,5 @@ def run_interactive(
 
         except (KeyboardInterrupt, EOFError):
             print_fn("\n\nGoodbye!")
+            break
             break
