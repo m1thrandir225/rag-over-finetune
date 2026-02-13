@@ -2,6 +2,13 @@ import json
 
 from dotenv import load_dotenv
 
+from internal.constants import (
+    DEFAULT_CHROMA_COLLECTION_NAME,
+    DEFAULT_CHROMA_PERSIST_DIR,
+    DEFAULT_ENV_PATH,
+    DEFAULT_OLLAMA_URL,
+)
+
 from .config import ChunkDocumentOptions, ChunkLengthOptions, Config, LLMProvider
 from .device import _detect_best_device
 
@@ -11,7 +18,7 @@ class ConfigLoader:
     Config Loader is resonsible for loading the config.json file and creating a frozen Config object
     """
 
-    def __init__(self, path: str, env_path: str = ".env") -> None:
+    def __init__(self, path: str, env_path: str = DEFAULT_ENV_PATH) -> None:
         self.path: str = path
         self.env_path: str = env_path
         load_dotenv(self.env_path)
@@ -83,16 +90,16 @@ class ConfigLoader:
                     chunk_overlap=config_data.get("chunk_overlap", 50),
                     top_k=config_data.get("top_k", 3),
                     chroma_collection_name=config_data.get(
-                        "chroma_collection_name", "vector_collection"
+                        "chroma_collection_name", DEFAULT_CHROMA_COLLECTION_NAME
                     ),
                     chroma_persist_dir=config_data.get(
-                        "chroma_persist_dir", "./chroma_db"
+                        "chroma_persist_dir", DEFAULT_CHROMA_PERSIST_DIR
                     ),
                     chunk_mode=config_data.get("chunk_mode", "text"),
                     chunk_document_options=chunk_doc_options,
                     chunk_length_options=chunk_len_options,
                     llm_provider=llm_provider,
-                    llm_url=config_data.get("llm_url", "http://localhost:11434"),
+                    llm_url=config_data.get("llm_url", DEFAULT_OLLAMA_URL),
                     llm_temperature=config_data.get("llm_temperature", 0.75),
                     llm_max_tokens=llm_max_tokens,
                     system_prompt=config_data.get(
