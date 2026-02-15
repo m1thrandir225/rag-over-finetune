@@ -12,6 +12,7 @@ class LLMProvider(str, Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
+    OPENROUTER = "openrouter"
 
 
 @dataclass(frozen=True)

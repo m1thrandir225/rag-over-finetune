@@ -15,7 +15,7 @@ The `config.json` file defines models, chunking behavior, vector store settings,
 prompting details. The current fields are:
 
 - `embedding_model`: HuggingFace embedding model name.
-- `llm_provider`: LLM backend (`ollama`, `openai`, `anthropic`, `google`).
+- `llm_provider`: LLM backend (`ollama`, `openai`, `anthropic`, `google`, `openrouter`).
 - `llm_model`: Model name for the selected provider.
 - `llm_url`: Base URL for Ollama (ignored for external providers).
 - `llm_temperature`: Sampling temperature.
@@ -44,6 +44,7 @@ prompting details. The current fields are:
   - `OPENAI_API_KEY`
   - `ANTHROPIC_API_KEY`
   - `GOOGLE_API_KEY`
+  - `OPENROUTER_API_KEY` (for OpenRouter; use model IDs like `anthropic/claude-3-opus`, `openai/gpt-4-turbo`)
 
 ## Modes
 
@@ -69,7 +70,7 @@ configuration, ingestion, processing, storage, retrieval, and generation.
 - `internal/processing/chunker`: Splits text/documents into chunks (configurable mode).
 - `internal/processing/embedding`: Builds embedding model and embeds queries/documents.
 - `internal/store/vector`: Manages Chroma vector store for persistence and retrieval.
-- `internal/llm`: Builds provider-specific LLM clients (Ollama/OpenAI/Anthropic/Google).
+- `internal/llm`: Builds provider-specific LLM clients (Ollama/OpenAI/Anthropic/Google/OpenRouter).
 - `internal/rag`: Coordinates the end-to-end RAG flow and builds the LangChain chain.
 
 ### How components interact
