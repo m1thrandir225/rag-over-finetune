@@ -15,13 +15,14 @@ LLMType = Union[ChatOllama, ChatOpenAI, ChatAnthropic, ChatGoogleGenerativeAI]
 class LLMService:
     """
     Manages LLM initialization and direct invocation.
-    Supports multiple providers: Ollama, OpenAI, Anthropic (Claude), and Google (Gemini).
+    Supports multiple providers: Ollama, OpenAI, Anthropic (Claude), Google (Gemini), and OpenRouter.
 
     Provider is configured via config.json (llm_provider field).
     API keys are loaded from environment variables (.env file):
         - OPENAI_API_KEY for OpenAI
         - ANTHROPIC_API_KEY for Anthropic/Claude
         - GOOGLE_API_KEY for Google/Gemini
+        - OPENROUTER_API_KEY for OpenRouter
     """
 
     def __init__(self, config: Config) -> None:
@@ -60,6 +61,8 @@ class LLMService:
             return self._create_anthropic()
         elif provider == LLMProvider.GOOGLE:
             return self._create_google()
+        elif provider == LLMProvider.OPENROUTER:
+            return self._create_openrouter()
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")
 
@@ -114,6 +117,21 @@ class LLMService:
         if self.config.llm_max_tokens is not None:
             kwargs["max_output_tokens"] = self.config.llm_max_tokens
         return ChatGoogleGenerativeAI(**kwargs)
+
+    def _create_openrouter(self) -> ChatOpenAI:
+        """
+        OpenRouter goes through the OpenAI LangChain wrapper
+        """
+        api_key = self._get_api_key("OPENROUTER_API_KEY")
+        kwargs: dict = {
+            "model": self.config.llm_model,
+            "api_key": api_key,
+            "base_url": "https://openrouter.ai/api/v1",
+            "temperature": self.config.llm_temperature,
+        }
+        if self.config.llm_max_tokens is not None:
+            kwargs["max_tokens"] = self.config.llm_max_tokens
+        return ChatOpenAI(**kwargs)  # type: ignore
 
     def invoke(self, prompt: str) -> str:
         """

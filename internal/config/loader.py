@@ -51,6 +51,7 @@ class ConfigLoader:
             "openai": LLMProvider.OPENAI,
             "anthropic": LLMProvider.ANTHROPIC,
             "google": LLMProvider.GOOGLE,
+            "openrouter": LLMProvider.OPENROUTER,
         }
 
         provider = provider_map.get(provider_str.lower())
