@@ -5,13 +5,25 @@ from typing import Optional
 
 class LLMProvider(str, Enum):
     """
-    Currently supported providers
+    Currently supported LLM providers
+    Ollama is local; OpenAI, Anthropic, Google, and OpenRouter are remote.
     """
 
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
+    OPENROUTER = "openrouter"
+
+
+class EmbeddingProvider(str, Enum):
+    """
+    Supported embedding providers.
+    HuggingFace is local; OpenAI and OpenRouter are remote.
+    """
+
+    HUGGINGFACE = "huggingface"
+    OPENAI = "openai"
     OPENROUTER = "openrouter"
 
 
@@ -36,6 +48,7 @@ class Config:
     """
 
     embedding_model: str
+    embedding_provider: EmbeddingProvider
     llm_model: str
     chunk_size: int
     chunk_overlap: int

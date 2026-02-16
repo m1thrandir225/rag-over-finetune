@@ -20,6 +20,7 @@ htmlcov/
 
 # Environment variables
 .env
+config.json
 
 # Data Folders 
 data/
