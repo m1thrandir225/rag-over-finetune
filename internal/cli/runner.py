@@ -104,7 +104,10 @@ def bootstrap_rag(
 
     print_fn(f"Provider: {config.llm_provider.value}")
     print_fn(f"Model: {config.llm_model}")
-    print_fn(f"Embedding device: {config.embedding_device}")
+    print_fn(f"Embedding provider: {config.embedding_provider.value}")
+    print_fn(f"Embedding model: {config.embedding_model}")
+    if config.embedding_provider.value == "huggingface":
+        print_fn(f"Embedding device: {config.embedding_device}")
     print_fn(f"Embedding batch size: {config.embedding_batch_size}")
 
     rag = RAG(config)

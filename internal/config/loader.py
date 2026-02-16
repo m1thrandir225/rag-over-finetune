@@ -10,27 +10,33 @@ from internal.constants import (
     DEFAULT_OLLAMA_URL,
 )
 
-from .config import ChunkDocumentOptions, ChunkLengthOptions, Config, LLMProvider
+from .config import (
+    ChunkDocumentOptions,
+    ChunkLengthOptions,
+    Config,
+    EmbeddingProvider,
+    LLMProvider,
+)
 from .device import _detect_best_device
 
 _system_prompt_path = Path("prompts/system_prompt.txt")
 _template_path = Path("prompts/prompt_template.txt")
 
-_system_prompt_fallback=(
+_system_prompt_fallback = (
     "Ти си помошник кој одговара на прашања.\n"
     "Користи го САМО дадениот контекст за да одговориш на прашањето.\n"
     "Ако одговорот не е во контекстот, СЕКОГАШ кажи дека немаш доволно информации на темата.\n"
     "Одговарај точно и концизно."
 )
-_template_fallback=(
-    "Контекст:\n{context}\n\nПрашање: {question}\n\nОдговор:"
-)
+_template_fallback = "Контекст:\n{context}\n\nПрашање: {question}\n\nОдговор:"
 
-def _load_prompt_file (path: Path, fallback: str) -> str:
+
+def _load_prompt_file(path: Path, fallback: str) -> str:
     try:
         return path.read_text(encoding="utf-8").strip()
     except FileNotFoundError:
         return fallback
+
 
 class ConfigLoader:
     """
@@ -58,6 +64,23 @@ class ConfigLoader:
         if provider is None:
             raise ValueError(
                 f"Unknown LLM provider: {provider_str}. Supported: {list(provider_map.keys())}"
+            )
+        return provider
+
+    def _parse_embedding_provider(self, provider_str: str) -> EmbeddingProvider:
+        """
+        Parse embedding provider string to EmbeddingProvider enum
+        """
+        provider_map = {
+            "huggingface": EmbeddingProvider.HUGGINGFACE,
+            "openai": EmbeddingProvider.OPENAI,
+            "openrouter": EmbeddingProvider.OPENROUTER,
+        }
+        provider = provider_map.get(provider_str.lower())
+        if provider is None:
+            raise ValueError(
+                f"Unknown embedding provider: {provider_str}. "
+                f"Supported: {list(provider_map.keys())}"
             )
         return provider
 
@@ -94,8 +117,14 @@ class ConfigLoader:
                     )
 
                 provider_str = config_data.get("llm_provider", "ollama")
-
                 llm_provider = self._parse_provider(provider_str)
+
+                embedding_provider_str = config_data.get(
+                    "embedding_provider", "huggingface"
+                )
+                embedding_provider = self._parse_embedding_provider(
+                    embedding_provider_str
+                )
 
                 max_tokens_raw = config_data.get("llm_max_tokens")
 
@@ -112,6 +141,7 @@ class ConfigLoader:
 
                 return Config(
                     embedding_model=config_data["embedding_model"],
+                    embedding_provider=embedding_provider,
                     llm_model=config_data["llm_model"],
                     chunk_size=config_data.get("chunk_size", 512),
                     chunk_overlap=config_data.get("chunk_overlap", 50),
@@ -130,7 +160,7 @@ class ConfigLoader:
                     llm_temperature=config_data.get("llm_temperature", 0.75),
                     llm_max_tokens=llm_max_tokens,
                     system_prompt=default_system_prompt,  # TODO: check default system prompt
-                    prompt_template= default_prompt_template,  # TODO: check default prompt template
+                    prompt_template=default_prompt_template,  # TODO: check default prompt template
                     embedding_device=self._resolve_device(
                         config_data.get("embedding_device", "auto")
                     ),

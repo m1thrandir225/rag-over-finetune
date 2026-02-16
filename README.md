@@ -14,7 +14,8 @@ You can ignore the field `llm_url` if you are using an external LLM like ChatGPT
 The `config.json` file defines models, chunking behavior, vector store settings, and
 prompting details. The current fields are:
 
-- `embedding_model`: HuggingFace embedding model name.
+- `embedding_model`: Model name for the selected embedding provider.
+- `embedding_provider`: Embedding backend (`huggingface`, `openai`, `openrouter`). HuggingFace runs locally; OpenAI and OpenRouter use remote APIs.
 - `llm_provider`: LLM backend (`ollama`, `openai`, `anthropic`, `google`, `openrouter`).
 - `llm_model`: Model name for the selected provider.
 - `llm_url`: Base URL for Ollama (ignored for external providers).
@@ -34,17 +35,17 @@ prompting details. The current fields are:
   - `token_mode_options`: `encoding_name`
 - `system_prompt`: System instructions for the LLM.
 - `prompt_template`: Prompt template with `{context}` and `{question}` placeholders.
-- `embedding_device`: Device for embeddings (e.g. `cpu`, `cuda`) **Note** This will be automatically detected based on the system in the future.
+- `embedding_device`: Device for HuggingFace embeddings only (e.g. `cpu`, `cuda`). Ignored for API providers. Use `auto` for automatic detection.
 - `normalize_embeddings`: Whether to normalize embeddings.
 
 ### Notes
 
 - `chunk_mode: document` is present but not implemented yet.
 - Provider API keys are read from `.env`:
-  - `OPENAI_API_KEY`
+  - `OPENAI_API_KEY` (OpenAI LLM and embeddings)
   - `ANTHROPIC_API_KEY`
   - `GOOGLE_API_KEY`
-  - `OPENROUTER_API_KEY` (for OpenRouter; use model IDs like `anthropic/claude-3-opus`, `openai/gpt-4-turbo`)
+  - `OPENROUTER_API_KEY` (OpenRouter LLM and embeddings; use model IDs like `anthropic/claude-3-opus`, `openai/text-embedding-3-small`)
 
 ## Modes
 
@@ -68,7 +69,7 @@ configuration, ingestion, processing, storage, retrieval, and generation.
 - `internal/config`: Loads `config.json` + `.env` and exposes a frozen `Config` object.
 - `internal/importer`: Loads raw documents from files/directories (txt, pdf, docx).
 - `internal/processing/chunker`: Splits text/documents into chunks (configurable mode).
-- `internal/processing/embedding`: Builds embedding model and embeds queries/documents.
+- `internal/processing/embedding`: Builds embedding model (HuggingFace/OpenAI/OpenRouter) and embeds queries/documents.
 - `internal/store/vector`: Manages Chroma vector store for persistence and retrieval.
 - `internal/llm`: Builds provider-specific LLM clients (Ollama/OpenAI/Anthropic/Google/OpenRouter).
 - `internal/rag`: Coordinates the end-to-end RAG flow and builds the LangChain chain.

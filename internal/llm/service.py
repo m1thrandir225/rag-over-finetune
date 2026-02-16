@@ -1,4 +1,3 @@
-import os
 from typing import Union
 
 from langchain_anthropic import ChatAnthropic
@@ -6,7 +5,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 
-from ..config import Config, LLMProvider
+from ..config import Config, LLMProvider, get_required_env_var
 
 # Type alias for supported LLM types
 LLMType = Union[ChatOllama, ChatOpenAI, ChatAnthropic, ChatGoogleGenerativeAI]
@@ -39,16 +38,6 @@ class LLMService:
             self._llm = self._create_llm()
         return self._llm
 
-    def _get_api_key(self, env_var: str) -> str:
-        """Get API key from environment variable"""
-        api_key = os.getenv(env_var)
-        if not api_key:
-            raise ValueError(
-                f"Missing API key: {env_var} environment variable is not set. "
-                f"Please add it to your .env file."
-            )
-        return api_key
-
     def _create_llm(self) -> LLMType:
         """Create the appropriate LLM based on the configured provider"""
         provider = self.config.llm_provider
@@ -80,7 +69,7 @@ class LLMService:
         """
         Create OpenAI LLM instance
         """
-        api_key = self._get_api_key("OPENAI_API_KEY")
+        api_key = get_required_env_var("OPENAI_API_KEY")
         kwargs = {
             "model": self.config.llm_model,
             "api_key": api_key,
@@ -94,7 +83,7 @@ class LLMService:
         """
         Create  Claude LLM instance
         """
-        api_key = self._get_api_key("ANTHROPIC_API_KEY")
+        api_key = get_required_env_var("ANTHROPIC_API_KEY")
         kwargs = {
             "model": self.config.llm_model,
             "api_key": api_key,
@@ -108,7 +97,7 @@ class LLMService:
         """
         Create Gemini LLM instance
         """
-        api_key = self._get_api_key("GOOGLE_API_KEY")
+        api_key = get_required_env_var("GOOGLE_API_KEY")
         kwargs = {
             "model": self.config.llm_model,
             "google_api_key": api_key,
@@ -122,7 +111,7 @@ class LLMService:
         """
         OpenRouter goes through the OpenAI LangChain wrapper
         """
-        api_key = self._get_api_key("OPENROUTER_API_KEY")
+        api_key = get_required_env_var("OPENROUTER_API_KEY")
         kwargs: dict = {
             "model": self.config.llm_model,
             "api_key": api_key,
