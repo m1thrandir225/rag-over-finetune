@@ -12,38 +12,37 @@ from internal.rag import RAG
 from .context import CLIContext
 
 
-def load_sample_documents(path: str) -> list[dict]:
+def load_sample_documents(path: str) -> list[Record]:
     """
     Load sample documents from a JSON file (Record format).
     """
     return DocumentImporter.load_json_records(path)
 
 
-def parse_documents(docs: list[dict]) -> tuple[list[str], list[dict]]:
+def parse_documents(docs: list[Record]) -> tuple[list[str], list[dict]]:
     """
-    Parse documents from predefined format into texts and metadatas
+    Parse Record documents into texts and metadatas.
     """
     texts: list[str] = []
     metadatas: list[dict] = []
-
     for doc in docs:
-        title = doc["title"]
-        content = doc.get("content", "")
-        text = f"{title}\n\n{content}" if content else title
+        text = doc.text
         texts.append(text)
 
-        metadata: dict = {}
-        if "id" in doc:
-            metadata["id"] = doc["id"]
-        if "site_url" in doc:
-            metadata["site_url"] = doc["site_url"]
-        if "page_url" in doc:
-            metadata["page_url"] = doc["page_url"]
-        if "published_at" in doc:
-            metadata["published_at"] = doc["published_at"]
-        if "categories" in doc:
-            metadata["categories"] = ", ".join(doc["categories"])
+        title, _, _ = text.partition("\n\n")
+        title = title.strip() or doc.id
+
+        metadata = doc.meta.model_dump(mode="json")
+        metadata["id"] = doc.id
+        metadata["published_at"] = doc.last_modified_at.isoformat()
         metadata["title"] = title
+
+        metadata["site_url"] = metadata.get("source", "")
+        if metadata.get("url"):
+            metadata["page_url"] = metadata["url"]
+        if metadata.get("tags"):
+            metadata["categories"] = ", ".join(metadata["tags"])
+
         metadatas.append(metadata)
 
     return texts, metadatas
@@ -73,8 +72,7 @@ def load_all_documents(
     else:
         print_fn(f"\nNo data folder found at {data_path} — skipping.")
 
-    docs = [r.to_dict() for r in all_records]
-    return parse_documents(docs)
+    return parse_documents(all_records)
 
 
 def bootstrap_rag(
@@ -124,6 +122,8 @@ def bootstrap_rag(
             imp, ctx.data_path, ctx.sample_documents_path, print_fn=print_fn
         )
         print_fn(f"Adding {len(texts)} documents...")
+        print_fn(texts)
+        print_fn(metadatas)
         rag.add_texts(texts, metadatas)
         print_fn(f"Total chunks in store: {rag.document_count()}")
 
@@ -304,5 +304,4 @@ def run_interactive(
 
         except (KeyboardInterrupt, EOFError):
             print_fn("\n\nGoodbye!")
-            break
             break

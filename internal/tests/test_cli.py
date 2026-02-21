@@ -7,6 +7,7 @@ from internal.constants import (
     DEFAULT_DATA_PATH,
     SAMPLE_DOCUMENTS_PATH,
 )
+from vezilka_schemas import Record
 
 
 class TestArgument:
@@ -62,8 +63,36 @@ class TestCLIParser:
 class TestParseDocuments:
     def test_parse_documents_basic(self) -> None:
         docs = [
-            {"title": "Doc 1", "content": "Content 1"},
-            {"title": "Doc 2", "content": ""},
+            Record.model_validate(
+                {
+                    "id": "record-1",
+                    "text": "Doc 1\n\nContent 1",
+                    "type": "narrative",
+                    "last_modified_at": "2026-01-01T00:00:00",
+                    "meta": {
+                        "source": "example.com",
+                        "url": None,
+                        "tags": [],
+                        "labels": [],
+                        "scraped_at": "2026-01-01T00:00:00",
+                    },
+                }
+            ),
+            Record.model_validate(
+                {
+                    "id": "record-2",
+                    "text": "Doc 2",
+                    "type": "narrative",
+                    "last_modified_at": "2026-01-02T00:00:00",
+                    "meta": {
+                        "source": "example.com",
+                        "url": None,
+                        "tags": [],
+                        "labels": [],
+                        "scraped_at": "2026-01-02T00:00:00",
+                    },
+                }
+            ),
         ]
         texts, metadatas = parse_documents(docs)
         assert texts == ["Doc 1\n\nContent 1", "Doc 2"]
@@ -73,18 +102,57 @@ class TestParseDocuments:
 
     def test_parse_documents_with_metadata(self) -> None:
         docs = [
-            {
-                "title": "Test",
-                "content": "Body",
-                "id": "123",
-                "page_url": "https://example.com",
-                "categories": ["a", "b"],
-            }
+            Record.model_validate(
+                {
+                    "id": "123",
+                    "text": "Test\n\nBody",
+                    "type": "narrative",
+                    "last_modified_at": "2026-01-01T00:00:00",
+                    "meta": {
+                        "source": "example.com",
+                        "url": "https://example.com",
+                        "tags": ["a", "b"],
+                        "labels": [],
+                        "scraped_at": "2026-01-01T00:00:00",
+                    },
+                }
+            )
         ]
         texts, metadatas = parse_documents(docs)
         assert metadatas[0]["id"] == "123"
+        assert metadatas[0]["source"] == "example.com"
+        assert metadatas[0]["url"] == "https://example.com"
+        assert metadatas[0]["tags"] == ["a", "b"]
+        assert metadatas[0]["labels"] == []
+        assert metadatas[0]["scraped_at"] == "2026-01-01T00:00:00"
+        assert metadatas[0]["site_url"] == "example.com"
         assert metadatas[0]["page_url"] == "https://example.com"
         assert metadatas[0]["categories"] == "a, b"
+
+    def test_parse_documents_record_input(self) -> None:
+        docs = [
+            Record.model_validate(
+                {
+                    "id": "record-1",
+                    "text": "Record Title\n\nRecord Body",
+                    "type": "narrative",
+                    "last_modified_at": "2026-01-01T00:00:00",
+                    "meta": {
+                        "source": "example.com",
+                        "url": "https://example.com/record",
+                        "tags": ["news", "tech"],
+                        "labels": [],
+                        "scraped_at": "2026-01-01T00:00:00",
+                    },
+                }
+            )
+        ]
+        texts, metadatas = parse_documents(docs)
+        assert texts == ["Record Title\n\nRecord Body"]
+        assert metadatas[0]["id"] == "record-1"
+        assert metadatas[0]["site_url"] == "example.com"
+        assert metadatas[0]["page_url"] == "https://example.com/record"
+        assert metadatas[0]["categories"] == "news, tech"
 
 
 class TestCLIContext:

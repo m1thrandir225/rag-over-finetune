@@ -4,6 +4,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
 
 from ..config import Config, EmbeddingProvider, get_required_env_var
+from .openrouter import OpenRouterSDKEmbeddings
 
 
 class EmbeddingService:
@@ -14,16 +15,18 @@ class EmbeddingService:
 
     def __init__(self, config: Config):
         self._config = config
-        self._embeddings: Optional[Union[HuggingFaceEmbeddings, OpenAIEmbeddings]] = (
-            None
-        )
+        self._embeddings: Optional[
+            Union[HuggingFaceEmbeddings, OpenAIEmbeddings, OpenRouterSDKEmbeddings]
+        ] = None
 
     @property
     def config(self) -> Config:
         return self._config
 
     @property
-    def embeddings(self) -> Union[HuggingFaceEmbeddings, OpenAIEmbeddings]:
+    def embeddings(
+        self,
+    ) -> Union[HuggingFaceEmbeddings, OpenAIEmbeddings, OpenRouterSDKEmbeddings]:
         """
         Lazy initialization of embedding model.
         """
@@ -33,7 +36,7 @@ class EmbeddingService:
 
     def _create_embeddings(
         self,
-    ) -> Union[HuggingFaceEmbeddings, OpenAIEmbeddings]:
+    ) -> Union[HuggingFaceEmbeddings, OpenAIEmbeddings, OpenRouterSDKEmbeddings]:
         """
         Create and configure the embedding model based on embedding_provider.
         """
@@ -81,17 +84,16 @@ class EmbeddingService:
             chunk_size=self._config.embedding_batch_size,
         )
 
-    def _create_openrouter(self) -> OpenAIEmbeddings:
+    def _create_openrouter(self) -> OpenRouterSDKEmbeddings:
         """
         Create OpenRouter embedding model
         Supported: https://openrouter.ai/models?output_modalities=embeddings
         """
         api_key = get_required_env_var("OPENROUTER_API_KEY")
-        return OpenAIEmbeddings(
-            model=self._config.embedding_model,
+        return OpenRouterSDKEmbeddings(
             api_key=api_key,
-            base_url="https://openrouter.ai/api/v1",
-            chunk_size=self._config.embedding_batch_size,
+            model=self._config.embedding_model,
+            batch_size=self._config.embedding_batch_size,
         )
 
     def embed_query(self, text: str) -> list[float]:

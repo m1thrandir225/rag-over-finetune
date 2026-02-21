@@ -2,6 +2,7 @@ from typing import List, Optional
 from uuid import uuid4
 
 from langchain_chroma import Chroma
+from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_core.documents import Document
 from tqdm import tqdm
 
@@ -52,8 +53,9 @@ class VectorStoreManager:
         Embeds all documents in one pass, then insert the pre-computed vectors in batches,
         avoids Chroma's internal re-embedding overhead.
         """
-        texts = [doc.page_content for doc in documents]
-        metadatas = [doc.metadata for doc in documents]
+        sanitized_documents = filter_complex_metadata(documents)
+        texts = [doc.page_content for doc in sanitized_documents]
+        metadatas = [doc.metadata for doc in sanitized_documents]
 
         return self.add_texts_batched(texts, metadatas, batch_size=batch_size)
 
@@ -67,11 +69,29 @@ class VectorStoreManager:
             return []
 
         metadatas = metadata or [{}] * len(texts)
+        filtered_pairs = [
+            (text, meta)
+            for text, meta in zip(texts, metadatas)
+            if isinstance(text, str) and text.strip()
+        ]
+        if not filtered_pairs:
+            return []
+        if len(filtered_pairs) != len(texts):
+            skipped = len(texts) - len(filtered_pairs)
+            print(f"Skipping {skipped} empty chunk(s) before embedding.")
+        texts = [text for text, _ in filtered_pairs]
+        metadatas = [meta for _, meta in filtered_pairs]
 
         # precompute all embeddings
         # Note: sentence-transformers handles its own internal batching and shows a progress bar
         print(f"Embedding {len(texts)} chunks...")
         embeddings = self._embedding_service.embed_documents(texts)
+        if not embeddings:
+            raise ValueError("Embedding service returned no embeddings.")
+        if len(embeddings) != len(texts):
+            raise ValueError(
+                f"Embedding count mismatch: got {len(embeddings)} embeddings for {len(texts)} texts."
+            )
 
         collection = self.vector_store._collection
         all_ids: list[str] = []
@@ -96,14 +116,22 @@ class VectorStoreManager:
         return all_ids
 
     def add_documents(self, documents: list[Document]) -> list[str]:
-        return self.vector_store.add_documents(documents)
+        sanitized_documents = filter_complex_metadata(documents)
+        return self.vector_store.add_documents(sanitized_documents)
 
     def add_texts(
         self,
         texts: list[str],
         metadata: Optional[List[dict]] = None,
     ) -> list[str]:
-        return self.vector_store.add_texts(texts, metadatas=metadata)
+        metadatas = metadata or [{}] * len(texts)
+        docs = [
+            Document(page_content=text, metadata=meta)
+            for text, meta in zip(texts, metadatas)
+        ]
+        sanitized_documents = filter_complex_metadata(docs)
+        sanitized_metadatas = [doc.metadata for doc in sanitized_documents]
+        return self.vector_store.add_texts(texts, metadatas=sanitized_metadatas)
 
     def similarity_search(self, query: str, k: Optional[int] = None) -> list[Document]:
         k = k or self.config.top_k
