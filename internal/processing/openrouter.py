@@ -28,28 +28,29 @@ class OpenRouterSDKEmbeddings(Embeddings):
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
-
         all_embeddings: list[list[float]] = []
-        for start in range(0, len(texts), self._batch_size):
-            batch = texts[start : start + self._batch_size]
-            try:
-                with OpenRouter(api_key=self._api_key) as client:
+        with OpenRouter(api_key=self._api_key) as client:
+            for start in range(0, len(texts), self._batch_size):
+                batch = texts[start : start + self._batch_size]
+                try:
                     response = client.embeddings.generate(
                         model=self._model,
                         input=batch,
                     )
-            except PaymentRequiredResponseError as exc:
-                raise ValueError(self._format_payment_error(exc)) from exc
-            except ResponseValidationError as exc:
-                # OpenRouter can return an error payload that fails SDK success-schema parsing.
-                if self._is_payment_limit_error(exc):
+                except PaymentRequiredResponseError as exc:
                     raise ValueError(self._format_payment_error(exc)) from exc
-                raise ValueError(
-                    f"OpenRouter embedding response validation failed: {exc}"
-                ) from exc
-            except OpenRouterDefaultError as exc:
-                raise ValueError(f"OpenRouter embedding request failed: {exc}") from exc
-            all_embeddings.extend(self._extract_embeddings(response))
+                except ResponseValidationError as exc:
+                    # OpenRouter can return an error payload that fails SDK success-schema parsing.
+                    if self._is_payment_limit_error(exc):
+                        raise ValueError(self._format_payment_error(exc)) from exc
+                    raise ValueError(
+                        f"OpenRouter embedding response validation failed: {exc}"
+                    ) from exc
+                except OpenRouterDefaultError as exc:
+                    raise ValueError(
+                        f"OpenRouter embedding request failed: {exc}"
+                    ) from exc
+                all_embeddings.extend(self._extract_embeddings(response))
         return all_embeddings
 
     def embed_query(self, text: str) -> list[float]:

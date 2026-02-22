@@ -4,7 +4,6 @@ from langchain_core.documents import Document
 from langchain_core.runnables import Runnable
 
 from ..config import Config
-from ..importer import DocumentImporter
 from ..llm import LLMService
 from ..processing import Chunker, EmbeddingService
 from ..store import VectorStoreManager
@@ -24,7 +23,6 @@ class RAG:
         self._config = config
 
         self._chunker = Chunker(config=self._config)
-        self._document_importer = DocumentImporter()
         self._embedding_service = EmbeddingService(config=self._config)
 
         self._vector_store = VectorStoreManager(
@@ -45,10 +43,6 @@ class RAG:
     @property
     def chunker(self) -> Chunker:
         return self._chunker
-
-    @property
-    def document_importer(self) -> DocumentImporter:
-        return self._document_importer
 
     @property
     def embedding_service(self) -> EmbeddingService:
@@ -103,36 +97,15 @@ class RAG:
         documents = self._chunker.create_documents(texts, metadata)
         return self.add_documents(documents, use_batched_path=use_batched_path)
 
-    def add_file(
-        self, file_path: str, encoding: str = "utf-8", use_batched_path: bool = True
-    ) -> list[str]:
-        """
-        Import and add a single file to the vector store
-        """
-
-        documents = self._document_importer.import_document(
-            file_path, encoding=encoding
-        )
-        return self.add_documents(documents, use_batched_path=use_batched_path)
-
-    def add_directory(
-        self,
-        directory_path: str,
-        glob_pattern: str = "**/*.txt",
-        encoding: str = "utf-8",
-        use_batched_path: bool = True,
-    ) -> list[str]:
-        """
-        Import and add all matching files from a directory to the vector store
-        """
-
-        documents = self._document_importer.load_directory(
-            directory_path, glob_pattern=glob_pattern, encoding=encoding
-        )
-        return self.add_documents(documents, use_batched_path=use_batched_path)
-
     def clear(self) -> None:
         self._vector_store.clear()
+        self._invalidate_chain()
+
+    def purge(self) -> None:
+        """
+        Clear the Chroma collection and delete the persist directory from disk.
+        """
+        self._vector_store.purge()
         self._invalidate_chain()
 
     def document_count(self) -> int:

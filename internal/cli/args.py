@@ -115,4 +115,9 @@ args: list[Argument] = [
         default=None,
         dest="query",
     ),
+    Argument(
+        "purge-db",
+        "Clear the Chroma collection and delete the persist directory",
+        action="store_true",
+    ),
 ]
