@@ -1,3 +1,4 @@
+import shutil
 from typing import List, Optional
 from uuid import uuid4
 
@@ -54,10 +55,13 @@ class VectorStoreManager:
         avoids Chroma's internal re-embedding overhead.
         """
         sanitized_documents = filter_complex_metadata(documents)
-        texts = [doc.page_content for doc in sanitized_documents]
-        metadatas = [doc.metadata for doc in sanitized_documents]
 
-        return self.add_texts_batched(texts, metadatas, batch_size=batch_size)
+        sanatized_texts = [doc.page_content for doc in sanitized_documents]
+        sanatized_metadatas = [doc.metadata for doc in sanitized_documents]
+
+        return self.add_texts_batched(
+            sanatized_texts, sanatized_metadatas, batch_size=batch_size
+        )
 
     def add_texts_batched(
         self,
@@ -154,12 +158,20 @@ class VectorStoreManager:
         )
 
     def clear(self) -> None:
-        # TODO: delete the chroma folder and add configuration to delete the folder
         store = self.vector_store
         store.delete_collection()
         self._vector_store = None
-
         _ = self.vector_store
+
+    def purge(self) -> None:
+        """
+        Clear the Chroma collection and delete the persist directory from disk.
+        """
+        self.clear()
+        self.vector_store = None
+
+        persist_dir = self.config.chroma_persist_dir
+        shutil.rmtree(persist_dir, ignore_errors=True)
 
     def document_count(self) -> int:
         return self.vector_store._collection.count()

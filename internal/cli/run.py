@@ -35,12 +35,15 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit(0)
 
     query_str = getattr(ns, "query", None)
+    purge_db = getattr(ns, "purge_db", False)
+
     if query_str is not None:
         ctx = _build_context(ns)
         run_single_query(
             ctx,
             query=query_str,
             should_clear=getattr(ns, "clear_db", False),
+            should_purge=purge_db,
             should_load_documents=getattr(ns, "load_docs", False),
             top_k=getattr(ns, "top_k", None),
             verbose=getattr(ns, "verbose", False),
@@ -60,6 +63,7 @@ def main(argv: list[str] | None = None) -> None:
         run_interactive(
             ctx,
             should_clear=should_clear,
+            should_purge=purge_db,
             should_load_documents=should_load,
             top_k=top_k,
             verbose=verbose,
@@ -68,6 +72,7 @@ def main(argv: list[str] | None = None) -> None:
         run_demo(
             ctx,
             should_clear=should_clear,
+            should_purge=purge_db,
             should_load_documents=should_load,
             top_k=top_k,
             verbose=verbose,

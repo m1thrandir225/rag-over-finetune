@@ -1,3 +1,5 @@
+from vezilka_schemas import Record
+
 from internal.cli.args import Argument
 from internal.cli.args import args as cli_args
 from internal.cli.parser import CLIParser
@@ -7,7 +9,6 @@ from internal.constants import (
     DEFAULT_DATA_PATH,
     SAMPLE_DOCUMENTS_PATH,
 )
-from vezilka_schemas import Record
 
 
 class TestArgument:
@@ -47,6 +48,7 @@ class TestCLIParser:
         assert ns.data_path == DEFAULT_DATA_PATH
         assert ns.clear_db is False
         assert ns.load_docs is False
+        assert ns.purge_db is False
         assert ns.top_k is None
         assert ns.query is None
 
@@ -58,6 +60,12 @@ class TestCLIParser:
         assert ns.verbose is True
         assert ns.top_k == 5
         assert ns.query == "test question"
+
+    def test_parse_args_purge_db(self) -> None:
+        parser = CLIParser()
+        parser.add_arguments(cli_args)
+        ns = parser.parse_args(["--purge-db"])
+        assert ns.purge_db is True
 
 
 class TestParseDocuments:

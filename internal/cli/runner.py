@@ -16,7 +16,7 @@ def load_sample_documents(path: str) -> list[Record]:
     """
     Load sample documents from a JSON file (Record format).
     """
-    return DocumentImporter.load_json_records(path)
+    return DocumentImporter().import_records(path)
 
 
 def parse_documents(docs: list[Record]) -> tuple[list[str], list[dict]]:
@@ -38,6 +38,7 @@ def parse_documents(docs: list[Record]) -> tuple[list[str], list[dict]]:
         metadata["title"] = title
 
         metadata["site_url"] = metadata.get("source", "")
+
         if metadata.get("url"):
             metadata["page_url"] = metadata["url"]
         if metadata.get("tags"):
@@ -79,6 +80,7 @@ def bootstrap_rag(
     ctx: CLIContext,
     *,
     should_clear: bool = False,
+    should_purge: bool = False,
     should_load_documents: bool = True,
     top_k: int | None = None,
     config_loader: ConfigLoader | None = None,
@@ -112,7 +114,10 @@ def bootstrap_rag(
     rag = RAG(config)
     imp = importer or DocumentImporter()
 
-    if should_clear:
+    if should_purge:
+        print_fn("Purging database and removing persist directory...")
+        rag.purge()
+    elif should_clear:
         print_fn("Clearing existing documents...")
         rag.clear()
 
@@ -122,8 +127,6 @@ def bootstrap_rag(
             imp, ctx.data_path, ctx.sample_documents_path, print_fn=print_fn
         )
         print_fn(f"Adding {len(texts)} documents...")
-        print_fn(texts)
-        print_fn(metadatas)
         rag.add_texts(texts, metadatas)
         print_fn(f"Total chunks in store: {rag.document_count()}")
 
@@ -134,6 +137,7 @@ def run_demo(
     ctx: CLIContext,
     *,
     should_clear: bool = False,
+    should_purge: bool = False,
     should_load_documents: bool = True,
     top_k: int | None = None,
     config_loader: ConfigLoader | None = None,
@@ -149,6 +153,7 @@ def run_demo(
     rag = bootstrap_rag(
         ctx,
         should_clear=should_clear,
+        should_purge=should_purge,
         should_load_documents=should_load_documents,
         top_k=top_k,
         config_loader=config_loader,
@@ -187,6 +192,7 @@ def run_single_query(
     *,
     query: str,
     should_clear: bool = False,
+    should_purge: bool = False,
     should_load_documents: bool = False,
     top_k: int | None = None,
     config_loader: ConfigLoader | None = None,
@@ -200,6 +206,7 @@ def run_single_query(
     rag = bootstrap_rag(
         ctx,
         should_clear=should_clear,
+        should_purge=should_purge,
         should_load_documents=should_load_documents,
         top_k=top_k,
         config_loader=config_loader,
@@ -225,6 +232,7 @@ def run_interactive(
     ctx: CLIContext,
     *,
     should_clear: bool = False,
+    should_purge: bool = False,
     should_load_documents: bool = False,
     top_k: int | None = None,
     config_loader: ConfigLoader | None = None,
@@ -240,6 +248,7 @@ def run_interactive(
     rag = bootstrap_rag(
         ctx,
         should_clear=should_clear,
+        should_purge=should_purge,
         should_load_documents=should_load_documents,
         top_k=top_k,
         config_loader=config_loader,
