@@ -227,6 +227,24 @@ class RAGChain:
         Build the RAG chain
         """
 
+        for i, q in enumerate(result.queries):
+            if result.use_embedding_of_first and i == 0:
+                embedding = self._embedding_service.embed_query(q)
+                docs = self._vector_store.similarity_search_by_vector(
+                    embedding=embedding, k=k
+                )
+            else:
+                docs = self._vector_store.similarity_search(query=q, k=k)
+
+            for doc in docs:
+                key = doc.page_content[:200] or str(id(doc))
+                if key not in seen:
+                    seen.add(key)
+                    all_docs.append(doc)
+
+        return all_docs[:k]
+
+    def build(self) -> Runnable:
         prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", self.config.system_prompt),
@@ -251,5 +269,5 @@ class RAGChain:
         """
         Formats documents into a context string
         """
-
+        return "\n\n---\n\n".join(doc.page_content for doc in docs)
         return "\n\n---\n\n".join(doc.page_content for doc in docs)
