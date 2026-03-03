@@ -22,8 +22,8 @@ dependencies = [
     "langchain-ollama>=1.0.1",
     "vezilka-schemas>=0.1.5",
     "openrouter>=0.6.0",
-    "qdrant-client",
-    "langchain-qdrant",
+    "qdrant-client>=1.17.0",
+    "langchain-qdrant>=1.1.0",
 ]
 
 [project.optional-dependencies]
