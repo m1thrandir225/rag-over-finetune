@@ -150,5 +150,3 @@ class ChromaVectorStore(VectorStoreBase):
 
     def document_count(self) -> int:
         return self.store._collection.count()
-        return self.store._collection.count()
-        return self.store._collection.count()

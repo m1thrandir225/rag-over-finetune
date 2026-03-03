@@ -144,6 +144,7 @@ class QdrantVectorStore(VectorStoreBase):
         try:
             client.get_collection(collection_name=self.collection_name)
         except Exception:
+            # TODO: Handle not found error
             client.recreate_collection(
                 collection_name=self.collection_name,
                 vectors_config=models.VectorParams(
@@ -248,7 +249,7 @@ class QdrantVectorStore(VectorStoreBase):
                     vector=emb,
                     payload={
                         "page_content": text,
-                        "metadata": meta,
+                        **meta,
                     },
                 )
                 for pid, text, emb, meta in zip(
@@ -276,7 +277,7 @@ class QdrantVectorStore(VectorStoreBase):
                         raise ValueError(
                             "A single chunk is too large to upsert into Qdrant over HTTP. "
                             f"Estimated payload bytes for this chunk is ~{est:,}, "
-                            f"but Qdrant's HTTP limit is {_QDRANT_MAX_HTTP_PAYLOAD_BYTES:, }. "
+                            f"but Qdrant's HTTP limit is {_QDRANT_MAX_HTTP_PAYLOAD_BYTES:,}. "
                             "Consider reducing your chunk size, omitting `page_content` from the payload, "
                             "or enabling gRPC (`qdrant_prefer_grpc=true`) if your deployment allows it."
                         ) from e
