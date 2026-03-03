@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import replace
 from typing import Callable
 
@@ -11,12 +12,34 @@ from internal.rag import RAG
 
 from .context import CLIContext
 
+_TITLE_PREFIX = "Наслов:"
+_SECTION_HEADING_RE = re.compile(r"^(={2,})\s*(.+?)\s*\1\s*$", re.MULTILINE)
+
 
 def load_sample_documents(path: str) -> list[Record]:
     """
     Load sample documents from a JSON file (Record format).
     """
     return DocumentImporter().import_records(path)
+
+
+def _extract_title(text: str, fallback: str) -> str:
+    """
+    Extract a clean title from the first paragraph of the document text.
+    Strips the 'Наслов:' prefix if present.
+    """
+    first_para, _, _ = text.partition("\n\n")
+    title = first_para.strip()
+    if title.startswith(_TITLE_PREFIX):
+        title = title[len(_TITLE_PREFIX) :].strip()
+    return title or fallback
+
+
+def _extract_sections(text: str) -> list[str]:
+    """
+    Pull wiki-style section headings (== Heading ==) from the text.
+    """
+    return [m.group(2) for m in _SECTION_HEADING_RE.finditer(text)]
 
 
 def parse_documents(docs: list[Record]) -> tuple[list[str], list[dict]]:
@@ -29,13 +52,21 @@ def parse_documents(docs: list[Record]) -> tuple[list[str], list[dict]]:
         text = doc.text
         texts.append(text)
 
-        title, _, _ = text.partition("\n\n")
-        title = title.strip() or doc.id
+        title = _extract_title(text, fallback=doc.id)
 
         metadata = doc.meta.model_dump(mode="json")
         metadata["id"] = doc.id
         metadata["published_at"] = doc.last_modified_at.isoformat()
         metadata["title"] = title
+
+        metadata["doc_type"] = doc.type.value
+        metadata["language"] = "mk"
+        metadata["word_count"] = len(text.split())
+        metadata["char_count"] = len(text)
+
+        sections = _extract_sections(text)
+        if sections:
+            metadata["sections"] = ", ".join(sections)
 
         metadata["site_url"] = metadata.get("source", "")
 
