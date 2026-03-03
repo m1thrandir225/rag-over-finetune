@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from langchain_core.documents import Document
 from langchain_text_splitters import (
@@ -9,11 +11,15 @@ from langchain_text_splitters import (
 
 from ..config import Config
 
+if TYPE_CHECKING:
+    from langchain_core.embeddings import Embeddings
+
 
 class ChunkMode(Enum):
     TEXT = "text"
     LENGTH = "length"
     DOCUMENT = "document"
+    SEMANTIC = "semantic"
 
 
 class DocumentType(Enum):
@@ -35,8 +41,13 @@ class Chunker:
     The goal is to support all text splitting structures from Langchain with comprehensive options passed by the 'config.json' file.
     """
 
-    def __init__(self, config: Config) -> None:
+    def __init__(
+        self,
+        config: Config,
+        embeddings: Optional[Embeddings] = None,
+    ) -> None:
         self._config = config
+        self._embeddings = embeddings
         self._splitter: Optional[RecursiveCharacterTextSplitter] = None
 
     @property
@@ -58,24 +69,14 @@ class Chunker:
         return self._splitter
 
     def _create_splitter(self) -> RecursiveCharacterTextSplitter:
-        separators = [
-            "\n\n",
-            "\n",
-            ".",
-            "!",
-            "?",
-            ";",
-            ",",
-            " ",
-            ""
-        ]
+        separators = ["\n\n", "\n", ".", "!", "?", ";", ",", " ", ""]
 
         return RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
             separators=separators,
             length_function=len,
-            is_separator_regex=False
+            is_separator_regex=False,
         )
 
     def chunk_text(self, text: str, mode: Optional[ChunkMode] = None) -> list[str]:
@@ -94,6 +95,8 @@ class Chunker:
                 return self._split_document_mode(text)
             case ChunkMode.LENGTH:
                 return self._split_length_mode(text)
+            case ChunkMode.SEMANTIC:
+                return self._split_semantic_mode(text)
 
     def _split_text_mode(self, text: str) -> list[str]:
         """
@@ -114,7 +117,7 @@ class Chunker:
         else:
             len_opts = self._config.chunk_length_options
             length_type = LengthType(len_opts.mode)
-            
+
             if length_type == LengthType.CHAR:
                 char_opts = len_opts.char_mode_options
                 separator = char_opts.get("separator", "\n\n")
@@ -140,12 +143,54 @@ class Chunker:
         return splitter.split_text(text)
 
     def _split_document_mode(self, text: str) -> list[str]:
-        pass #TODO: implement document mode
+        pass  # TODO: implement document mode
+
+    def _split_semantic_mode(self, text: str) -> list[str]:
+        """
+        Split text using embedding similarity to detect topic boundaries.
+        Falls back to TEXT mode for short texts that can't be semantically split.
+        """
+        if self._embeddings is None:
+            raise ValueError(
+                "Semantic chunking requires an embeddings instance. "
+                "Pass embeddings= when constructing the Chunker or use a different chunk_mode."
+            )
+
+        from langchain_experimental.text_splitter import SemanticChunker
+
+        kwargs: dict = {
+            "embeddings": self._embeddings,
+            "breakpoint_threshold_type": self._config.semantic_breakpoint_type,
+        }
+        if self._config.semantic_breakpoint_amount is not None:
+            kwargs["breakpoint_threshold_amount"] = (
+                self._config.semantic_breakpoint_amount
+            )
+
+        semantic_splitter = SemanticChunker(**kwargs)
+
+        try:
+            chunks = semantic_splitter.split_text(text)
+        except (IndexError, ValueError):
+            chunks = self._split_text_mode(text)
+
+        return chunks
 
     def split_documents(self, documents: list[Document]) -> list[Document]:
         """
-        Split documents into chunks
+        Split documents into chunks based on the configured chunk mode.
         """
+        mode = ChunkMode(self._config.chunk_mode)
+
+        if mode == ChunkMode.SEMANTIC:
+            result: list[Document] = []
+            for doc in documents:
+                chunks = self._split_semantic_mode(doc.page_content)
+                result.extend(
+                    Document(page_content=chunk, metadata=doc.metadata.copy())
+                    for chunk in chunks
+                )
+            return result
 
         return self.splitter.split_documents(documents)
 
@@ -157,9 +202,7 @@ class Chunker:
         return self.chunk_text(text)
 
     def create_documents(
-        self,
-        texts: list[str],
-        metadatas: Optional[list[dict]] = None
+        self, texts: list[str], metadatas: Optional[list[dict]] = None
     ) -> list[Document]:
         """
         Create Document objects text

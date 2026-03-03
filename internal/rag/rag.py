@@ -22,8 +22,11 @@ class RAG:
     ) -> None:
         self._config = config
 
-        self._chunker = Chunker(config=self._config)
         self._embedding_service = EmbeddingService(config=self._config)
+        self._chunker = Chunker(
+            config=self._config,
+            embeddings=self._embedding_service.embeddings,
+        )
 
         self._vector_store = VectorStoreManager(
             config=self._config, embedding_service=self._embedding_service

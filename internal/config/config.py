@@ -78,3 +78,7 @@ class Config:
     embedding_device: str
     normalize_embeddings: bool
     embedding_batch_size: int
+
+    # Semantic Chunking
+    semantic_breakpoint_type: str  # "percentile", "standard_deviation", "interquartile", "gradient"
+    semantic_breakpoint_amount: Optional[float]
