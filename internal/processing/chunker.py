@@ -49,6 +49,7 @@ class Chunker:
         self._config = config
         self._embeddings = embeddings
         self._splitter: Optional[RecursiveCharacterTextSplitter] = None
+        self._semantic_splitter: Optional[object] = None
 
     @property
     def config(self) -> Config:
@@ -145,11 +146,13 @@ class Chunker:
     def _split_document_mode(self, text: str) -> list[str]:
         pass  # TODO: implement document mode
 
-    def _split_semantic_mode(self, text: str) -> list[str]:
-        """
-        Split text using embedding similarity to detect topic boundaries.
-        Falls back to TEXT mode for short texts that can't be semantically split.
-        """
+    @property
+    def semantic_splitter(self) -> object:
+        if self._semantic_splitter is None:
+            self._semantic_splitter = self._create_semantic_splitter()
+        return self._semantic_splitter
+
+    def _create_semantic_splitter(self) -> object:
         if self._embeddings is None:
             raise ValueError(
                 "Semantic chunking requires an embeddings instance. "
@@ -167,14 +170,17 @@ class Chunker:
                 self._config.semantic_breakpoint_amount
             )
 
-        semantic_splitter = SemanticChunker(**kwargs)
+        return SemanticChunker(**kwargs)
 
+    def _split_semantic_mode(self, text: str) -> list[str]:
+        """
+        Split text using embedding similarity to detect topic boundaries.
+        Falls back to TEXT mode for short texts that can't be semantically split.
+        """
         try:
-            chunks = semantic_splitter.split_text(text)
+            return self.semantic_splitter.split_text(text)  # type: ignore[union-attr]
         except (IndexError, ValueError):
-            chunks = self._split_text_mode(text)
-
-        return chunks
+            return self._split_text_mode(text)
 
     def split_documents(self, documents: list[Document]) -> list[Document]:
         """
