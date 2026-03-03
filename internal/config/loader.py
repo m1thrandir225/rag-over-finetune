@@ -4,10 +4,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from internal.constants import (
-    DEFAULT_CHROMA_COLLECTION_NAME,
-    DEFAULT_CHROMA_PERSIST_DIR,
     DEFAULT_ENV_PATH,
     DEFAULT_OLLAMA_URL,
+    DEFAULT_QDRANT_COLLECTION_NAME,
+    DEFAULT_QDRANT_URL,
 )
 
 from .config import (
@@ -146,12 +146,15 @@ class ConfigLoader:
                     chunk_size=config_data.get("chunk_size", 512),
                     chunk_overlap=config_data.get("chunk_overlap", 50),
                     top_k=config_data.get("top_k", 3),
-                    chroma_collection_name=config_data.get(
-                        "chroma_collection_name", DEFAULT_CHROMA_COLLECTION_NAME
+                    vector_store_provider=config_data.get(
+                        "vector_store_provider", "qdrant"
                     ),
-                    chroma_persist_dir=config_data.get(
-                        "chroma_persist_dir", DEFAULT_CHROMA_PERSIST_DIR
+                    qdrant_collection_name=config_data.get(
+                        "qdrant_collection_name", DEFAULT_QDRANT_COLLECTION_NAME
                     ),
+                    qdrant_url=config_data.get("qdrant_url", DEFAULT_QDRANT_URL),
+                    qdrant_api_key=config_data.get("qdrant_api_key"),
+                    qdrant_prefer_grpc=config_data.get("qdrant_prefer_grpc", False),
                     chunk_mode=config_data.get("chunk_mode", "text"),
                     chunk_document_options=chunk_doc_options,
                     chunk_length_options=chunk_len_options,

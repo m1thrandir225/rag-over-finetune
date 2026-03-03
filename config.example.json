@@ -9,8 +9,11 @@
   "chunk_size": 512,
   "chunk_overlap": 50,
   "top_k": 3,
-  "chroma_collection_name": "vector_collection",
-  "chroma_persist_dir": "./chroma_db",
+  "vector_store_provider": "qdrant",
+  "qdrant_collection_name": "mk_rag_collection",
+  "qdrant_url": "http://localhost:6333",
+  "qdrant_api_key": null,
+  "qdrant_prefer_grpc": false,
   "chunk_mode": "text",
   "chunk_document_options": {
     "json_mode_options": {},
