@@ -185,20 +185,32 @@ class Chunker:
     def split_documents(self, documents: list[Document]) -> list[Document]:
         """
         Split documents into chunks based on the configured chunk mode.
+        Each chunk inherits its parent's metadata plus chunk_index,
+        total_chunks, and parent_doc_id for traceability.
         """
         mode = ChunkMode(self._config.chunk_mode)
+        all_chunks: list[Document] = []
 
-        if mode == ChunkMode.SEMANTIC:
-            result: list[Document] = []
-            for doc in documents:
-                chunks = self._split_semantic_mode(doc.page_content)
-                result.extend(
+        for doc in documents:
+            if mode == ChunkMode.SEMANTIC:
+                raw_chunks = self._split_semantic_mode(doc.page_content)
+                doc_chunks = [
                     Document(page_content=chunk, metadata=doc.metadata.copy())
-                    for chunk in chunks
-                )
-            return result
+                    for chunk in raw_chunks
+                ]
+            else:
+                doc_chunks = self.splitter.split_documents([doc])
 
-        return self.splitter.split_documents(documents)
+            parent_id = doc.metadata.get("id", "")
+            total = len(doc_chunks)
+            for idx, chunk in enumerate(doc_chunks):
+                chunk.metadata["chunk_index"] = idx
+                chunk.metadata["total_chunks"] = total
+                chunk.metadata["parent_doc_id"] = parent_id
+
+            all_chunks.extend(doc_chunks)
+
+        return all_chunks
 
     def split_text(self, text: str) -> list[str]:
         """
