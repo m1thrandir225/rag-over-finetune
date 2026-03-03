@@ -80,9 +80,13 @@ class Config:
     embedding_batch_size: int
 
     # Semantic Chunking
-    semantic_breakpoint_type: str  # "percentile", "standard_deviation", "interquartile", "gradient"
+    semantic_breakpoint_type: (
+        str  # "percentile", "standard_deviation", "interquartile", "gradient"
+    )
     semantic_breakpoint_amount: Optional[float]
 
     # MCP Tools Configuration
     mcp_enabled: bool
     mcp_servers: dict[str, dict]
+    # Query Transformations
+    query_transform_mode: str  # "none", "multi_query", "hyde", "step_back"

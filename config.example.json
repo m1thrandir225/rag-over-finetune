@@ -39,5 +39,6 @@
   "semantic_breakpoint_type": "percentile",
   "semantic_breakpoint_amount": null,
   "mcp_enabled": true,
-  "mcp_servers": {}
+  "mcp_servers": {},
+  "query_transform_mode": "multi_query"
 }

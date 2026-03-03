@@ -313,6 +313,12 @@ class QdrantVectorStore(VectorStoreBase):
         k = k or self._config.top_k
         return self.vector_store.similarity_search(query, k=k)
 
+    def similarity_search_by_vector(
+        self, embedding: list[float], k: Optional[int] = None
+    ) -> list[Document]:
+        k = k or self._config.top_k
+        return self.vector_store.similarity_search_by_vector(embedding, k=k)
+
     def similarity_search_with_score(
         self, query: str, k: Optional[int] = None
     ) -> list[tuple[Document, float]]:

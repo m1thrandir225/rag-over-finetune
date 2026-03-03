@@ -42,6 +42,11 @@ class VectorStoreBase(ABC):
     ) -> list[Document]: ...
 
     @abstractmethod
+    def similarity_search_by_vector(
+        self, embedding: list[float], k: Optional[int] = None
+    ) -> list[Document]: ...
+
+    @abstractmethod
     def similarity_search_with_score(
         self, query: str, k: Optional[int] = None
     ) -> list[tuple[Document, float]]: ...
