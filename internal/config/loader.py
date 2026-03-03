@@ -178,6 +178,9 @@ class ConfigLoader:
                     # MCP Tools Configuration
                     mcp_enabled=config_data.get("mcp_enabled", False),
                     mcp_servers=config_data.get("mcp_servers", {}),
+                    query_transform_mode=config_data.get(
+                        "query_transform_mode", "multi_query"
+                    ),
                 )
         except FileNotFoundError:
             print(f"Error: The config file '{self.path}' was not found.")

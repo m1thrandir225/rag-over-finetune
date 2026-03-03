@@ -80,6 +80,11 @@ class VectorStoreManager:
     def similarity_search(self, query: str, k: Optional[int] = None) -> list[Document]:
         return self.backend.similarity_search(query=query, k=k)
 
+    def similarity_search_by_vector(
+        self, embedding: list[float], k: Optional[int] = None
+    ) -> list[Document]:
+        return self.backend.similarity_search_by_vector(embedding=embedding, k=k)
+
     def similarity_search_with_score(
         self, query: str, k: Optional[int] = None
     ) -> list[tuple[Document, float]]:

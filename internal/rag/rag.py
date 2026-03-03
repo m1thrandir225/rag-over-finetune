@@ -37,6 +37,7 @@ class RAG:
             config=self._config,
             vector_store=self._vector_store,
             llm_service=self._llm_service,
+            embedding_service=self._embedding_service,
         )
         self._chain: Runnable | None = None
 
