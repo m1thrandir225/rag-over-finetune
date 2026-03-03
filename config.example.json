@@ -35,5 +35,7 @@
   },
   "embedding_device": "auto",
   "embedding_batch_size": 256,
-  "normalize_embeddings": true
+  "normalize_embeddings": true,
+  "semantic_breakpoint_type": "percentile",
+  "semantic_breakpoint_amount": null
 }

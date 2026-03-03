@@ -169,6 +169,12 @@ class ConfigLoader:
                     ),
                     normalize_embeddings=config_data.get("normalize_embeddings", True),
                     embedding_batch_size=config_data.get("embedding_batch_size", 256),
+                    semantic_breakpoint_type=config_data.get(
+                        "semantic_breakpoint_type", "percentile"
+                    ),
+                    semantic_breakpoint_amount=config_data.get(
+                        "semantic_breakpoint_amount"
+                    ),
                 )
         except FileNotFoundError:
             print(f"Error: The config file '{self.path}' was not found.")
