@@ -15,7 +15,6 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "tiktoken>=0.12.0",
     "sentence-transformers>=5.2.2",
-    "langchain-chroma>=1.1.0",
     "langchain-huggingface>=1.2.0",
     "langchain-openai>=1.1.7",
     "langchain-anthropic>=1.3.1",
@@ -23,6 +22,8 @@ dependencies = [
     "langchain-ollama>=1.0.1",
     "vezilka-schemas>=0.1.5",
     "openrouter>=0.6.0",
+    "qdrant-client",
+    "langchain-qdrant",
 ]
 
 [project.optional-dependencies]

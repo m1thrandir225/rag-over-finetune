@@ -1,3 +1,3 @@
-from .vector import VectorStoreManager
+from .manager import VectorStoreManager
 
 __all__ = ["VectorStoreManager"]

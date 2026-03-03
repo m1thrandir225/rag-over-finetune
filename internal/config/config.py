@@ -53,8 +53,14 @@ class Config:
     chunk_size: int
     chunk_overlap: int
     top_k: int
-    chroma_collection_name: str
-    chroma_persist_dir: str
+
+    # Vector Store Configuration
+    vector_store_provider: str  # e.g. "qdrant"
+    qdrant_collection_name: str
+    qdrant_url: str
+    qdrant_api_key: Optional[str]
+    qdrant_prefer_grpc: bool
+
     chunk_mode: str  # "text", "length", or "document"
     chunk_document_options: Optional[ChunkDocumentOptions]
     chunk_length_options: Optional[ChunkLengthOptions]

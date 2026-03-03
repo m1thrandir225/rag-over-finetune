@@ -100,7 +100,9 @@ def bootstrap_rag(
     if verbose:
         print_fn(f"Config path: {ctx.config_path}")
         print_fn(f"Data path: {ctx.data_path}")
-        print_fn(f"Chroma dir: {config.chroma_persist_dir}")
+        print_fn(f"Vector store provider: {config.vector_store_provider}")
+        print_fn(f"Qdrant URL: {config.qdrant_url}")
+        print_fn(f"Qdrant collection: {config.qdrant_collection_name}")
         print_fn(f"Top-k: {config.top_k}")
 
     print_fn(f"Provider: {config.llm_provider.value}")
@@ -122,13 +124,20 @@ def bootstrap_rag(
         rag.clear()
 
     if should_load_documents:
-        print_fn("Loading documents...")
-        texts, metadatas = load_all_documents(
-            imp, ctx.data_path, ctx.sample_documents_path, print_fn=print_fn
-        )
-        print_fn(f"Adding {len(texts)} documents...")
-        rag.add_texts(texts, metadatas)
-        print_fn(f"Total chunks in store: {rag.document_count()}")
+        existing_chunks = rag.document_count()
+        if existing_chunks > 0 and not (should_clear or should_purge):
+            print_fn(
+                f"Store already contains {existing_chunks} chunks -- skipping import. "
+                "Use --clear-db to reload."
+            )
+        else:
+            print_fn("Loading documents...")
+            texts, metadatas = load_all_documents(
+                imp, ctx.data_path, ctx.sample_documents_path, print_fn=print_fn
+            )
+            print_fn(f"Adding {len(texts)} documents...")
+            rag.add_texts(texts, metadatas)
+            print_fn(f"Total chunks in store: {rag.document_count()}")
 
     return rag
 
