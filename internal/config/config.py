@@ -102,3 +102,5 @@ class Config:
 
     merge_strategy: str  # "rrf" ("mmr" & "score_max" planned)
     hyde_include_original_query: bool
+    # Query Transformations
+    query_transform_mode: str  # "none", "multi_query", "hyde", "step_back"
