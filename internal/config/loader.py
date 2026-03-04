@@ -4,6 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from internal.constants import (
+    DEFAULT_ENABLED_QUERY_TRANSFORMS,
     DEFAULT_ENV_PATH,
     DEFAULT_HYDE_INCLUDE_ORIGINAL_QUERY,
     DEFAULT_MAX_GENERATED_QUERIES,
@@ -189,7 +190,7 @@ class ConfigLoader:
                         "query_transform_mode", "multi_query"
                     ),
                     enabled_transforms=config_data.get(
-                        "enabled_transforms", ["multi_query"]
+                        "enabled_transforms", DEFAULT_ENABLED_QUERY_TRANSFORMS
                     ),
                     max_generated_queries=config_data.get(
                         "max_generated_queries", DEFAULT_MAX_GENERATED_QUERIES
