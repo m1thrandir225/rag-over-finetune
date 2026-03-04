@@ -66,10 +66,8 @@ class QueryTransformer:
     timeout_ms : int
         Per-LLM-call soft timeout (currently advisory / for logging).
     hyde_include_original_query : bool
-        If True (default), the original query is included alongside HyDE-
-        generated hypothetical documents for dual-channel retrieval.
-        If False, only the hypothetical document embedding is used
-
+        If True, HyDE also includes the original query alongside the
+        hypothetical document for retrieval.
     """
 
     def __init__(

@@ -88,8 +88,6 @@ class Config:
     # MCP Tools Configuration
     mcp_enabled: bool
     mcp_servers: dict[str, dict]
-    # Query Transformations
-    query_transform_mode: str  # "none", "multi_query", "hyde", "step_back"
     # Query Transform Pipeline
     enabled_transforms: list[str]  # ["multi_query"], ["step_back", "multi_query"]
     max_generated_queries: int
@@ -104,3 +102,5 @@ class Config:
     hyde_include_original_query: bool
     # Query Transformations
     query_transform_mode: str  # "none", "multi_query", "hyde", "step_back"
+    merge_strategy: str  # "rrf", "mmr", "score_max"
+    hyde_include_original_query: bool
