@@ -66,8 +66,10 @@ class QueryTransformer:
     timeout_ms : int
         Per-LLM-call soft timeout (currently advisory / for logging).
     hyde_include_original_query : bool
-        If True, HyDE also includes the original query alongside the
-        hypothetical document for retrieval.
+        If True (default), the original query is included alongside HyDE-
+        generated hypothetical documents for dual-channel retrieval.
+        If False, only the hypothetical document embedding is used
+
     """
 
     def __init__(
@@ -109,7 +111,7 @@ class QueryTransformer:
             )
 
         if not should_transform(query, gate_enabled=self._gate_enabled):
-            logger.info(
+            logger.debug(
                 "QueryTransform: gate skipped transforms for query=%r", query[:80]
             )
             return TransformResult(
@@ -119,7 +121,10 @@ class QueryTransformer:
                 total_duration_ms=_elapsed_ms(t0),
             )
 
-        accumulated_queries: list[str] = [query]
+        hyde_active = "hyde" in self._transforms
+        include_original = not hyde_active or self._hyde_include_original_query
+
+        accumulated_queries: list[str] = [query] if include_original else []
         use_embedding_of: set[int] = set()
         applied: list[str] = []
         stages: list[TransformStageResult] = []
@@ -163,6 +168,13 @@ class QueryTransformer:
 
         total_ms = _elapsed_ms(t0)
 
+        # if all fails include the original query
+        if not accumulated_queries:
+            logger.warning(
+                "All transforms produced zero queries — falling back to original"
+            )
+            accumulated_queries = [query]
+
         result = TransformResult(
             original_query=query,
             expanded_queries=accumulated_queries,
@@ -173,7 +185,7 @@ class QueryTransformer:
             total_duration_ms=total_ms,
         )
 
-        logger.info(
+        logger.debug(
             "QueryTransform complete: input=%r | transforms=%s | "
             "expanded=%d queries | embed_of=%s | total=%.1f ms | "
             "stage_breakdown=%s",
@@ -223,8 +235,7 @@ class QueryTransformer:
         _current: list[str],
     ) -> tuple[list[str], list[int]]:
         """
-        Generate a hypothetical document and optionally include the original
-        query alongside it for dual-channel retrieval.
+        Generate a hypothetical document for embedding-based retrieval
         """
 
         prompt = _HYDE_PROMPT.format(question=original_query)
@@ -235,9 +246,6 @@ class QueryTransformer:
 
         new_queries = [hypothetical]
         embed_indices = [0]  # embed the hypothetical doc text
-
-        if self._hyde_include_original_query:
-            logger.debug("HyDE dual-channel: original query retained for retrieval")
 
         return new_queries, embed_indices
 

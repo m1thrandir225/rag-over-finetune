@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 # RRF smoothing constant
 _RRF_K = 60
 
+_SUPPORTED_MERGE_STRATEGIES = {"rrf"}
+
 
 def _doc_key(doc: Document) -> str:
     """
@@ -94,6 +96,15 @@ class RAGChain:
         self._llm_service = llm_service
         self._embedding_service = embedding_service
 
+        # cache the last retrieved docs so we dont run multiple retrievals
+        self._last_retrieved_docs: list[Document] = []
+
+        if config.merge_strategy not in _SUPPORTED_MERGE_STRATEGIES:
+            raise ValueError(
+                f"Unsupported merge_strategy {config.merge_strategy!r}. "
+                f"Supported values: {sorted(_SUPPORTED_MERGE_STRATEGIES)}"
+            )
+
         self._query_transformer = QueryTransformer(
             llm=llm_service.llm,
             enabled_transforms=list(self._config.enabled_transforms),
@@ -106,6 +117,14 @@ class RAGChain:
     @property
     def config(self) -> Config:
         return self._config
+
+    @property
+    def last_retrieved_docs(self) -> list[Document]:
+        """
+        Documents returned by the most recent '_retrieve_with_transform'
+        """
+
+        return self._last_retrieved_docs
 
     @property
     def vector_store(self) -> VectorStoreManager:
@@ -155,7 +174,7 @@ class RAGChain:
                 )
             ranked_lists.append(docs)
 
-        if len(ranked_lists) <= 1 or merge_strategy != "rrf":
+        if len(ranked_lists) <= 1:
             flat = [
                 doc for rl in ranked_lists for doc in rl
             ]  # flatten the ranked lists into a single one
@@ -165,13 +184,12 @@ class RAGChain:
 
         elapsed = (time.perf_counter() - t0) * 1_000
 
-        # Overlap stats (TODO: remove)
         if len(ranked_lists) > 1:
             per_list_keys = [{_doc_key(d) for d in rl} for rl in ranked_lists]
             total_raw = sum(len(rl) for rl in ranked_lists)
             unique_keys = set().union(*per_list_keys) if per_list_keys else set()
             overlap_count = total_raw - len(unique_keys)
-            logger.info(
+            logger.debug(
                 "Retrieve: %d queries -> %d raw docs, %d unique, "
                 "%d overlapping -> %d after merge (%s) in %.1f ms "
                 "(transforms=%s, gate_skipped=%s)",
@@ -186,7 +204,7 @@ class RAGChain:
                 result.gate_skipped,
             )
         else:
-            logger.info(
+            logger.debug(
                 "Retrieve: %d queries -> %d docs in %.1f ms "
                 "(transforms=%s, gate_skipped=%s)",
                 len(result.expanded_queries),
@@ -196,6 +214,7 @@ class RAGChain:
                 result.gate_skipped,
             )
 
+        self._last_retrieved_docs = merged
         return merged
 
     def build(self) -> Runnable:

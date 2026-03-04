@@ -132,14 +132,15 @@ class RAG:
         sources: list[str] | list[dict] = []
 
         if include_scores:
-            source_docs = self._vector_store.similarity_search_with_score(question)
+            # use cached docs from the chain
+            source_docs = self._chain_builder.last_retrieved_docs
             sources = [
                 {
                     "content": doc.page_content,
                     "metadata": doc.metadata,
-                    "score": float(score),
+                    "rank": rank,
                 }
-                for doc, score in source_docs
+                for rank, doc in enumerate(source_docs, start=1)
             ]
         return QueryResult(
             answer=answer,
