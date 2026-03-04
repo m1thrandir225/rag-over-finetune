@@ -43,5 +43,3 @@ class TransformResult:
     stages: list[TransformStageResult] = field(default_factory=list)
     gate_skipped: bool = False
     total_duration_ms: float = 0.0
-    gate_skipped: bool = False
-    total_duration_ms: float = 0.0

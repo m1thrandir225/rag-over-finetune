@@ -100,5 +100,5 @@ class Config:
     k_per_query: int
     k_total_before_rerank: int
 
-    merge_strategy: str  # "rrf", "mmr", "score_max"
+    merge_strategy: str  # "rrf" ("mmr" & "score_max" planned)
     hyde_include_original_query: bool
