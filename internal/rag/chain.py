@@ -35,14 +35,15 @@ def _doc_key(doc: Document) -> str:
 def _rrf_merge(
     ranked_lists: list[list[Document]],
     k_total: int,
-) -> list[Document]:
+) -> list[tuple[Document, float]]:
     """
     Reciprocal Rank Fusion over multiple ranked result lists.
 
     For each document seen across all lists, the RRF score is:
         sum( 1 / (rrf_k + rank_i) )  for every list that contains it.
 
-    Returns the top *k_total* documents sorted by descending RRF score.
+    Returns the top *k_total* (document, rrf_score) pairs sorted by
+    descending RRF score.
     """
     scores: dict[str, float] = defaultdict(float)
     doc_by_key: dict[str, Document] = {}
@@ -55,24 +56,28 @@ def _rrf_merge(
                 doc_by_key[key] = doc
 
     sorted_keys = sorted(scores, key=lambda k: scores[k], reverse=True)
-    return [doc_by_key[k] for k in sorted_keys[:k_total]]
+    return [(doc_by_key[k], scores[k]) for k in sorted_keys[:k_total]]
 
 
 def _simple_dedup(
     docs: list[Document],
     k_total: int,
-) -> list[Document]:
+) -> list[tuple[Document, float]]:
     """
-    Deduplicate by content hash and cap at *k_total*.
+    Deduplicate by content hash, cap at *k_total*, and assign a positional
+    RRF-style score (`1 / (rrf_k + rank)`) so callers always get a
+    comparable numeric score regardless of the merge path taken
     """
 
     seen: set[str] = set()
-    result: list[Document] = []
+    result: list[tuple[Document, float]] = []
+    rank = 0
     for doc in docs:
         key = _doc_key(doc)
         if key not in seen:
             seen.add(key)
-            result.append(doc)
+            rank += 1
+            result.append((doc, 1.0 / (_RRF_K + rank)))
         if len(result) >= k_total:
             break
     return result
@@ -97,7 +102,7 @@ class RAGChain:
         self._embedding_service = embedding_service
 
         # cache the last retrieved docs so we dont run multiple retrievals
-        self._last_retrieved_docs: list[Document] = []
+        self._last_retrieved_docs: list[tuple[Document, float]] = []
 
         if config.merge_strategy not in _SUPPORTED_MERGE_STRATEGIES:
             raise ValueError(
@@ -119,7 +124,7 @@ class RAGChain:
         return self._config
 
     @property
-    def last_retrieved_docs(self) -> list[Document]:
+    def last_retrieved_docs(self) -> list[tuple[Document, float]]:
         """
         Documents returned by the most recent '_retrieve_with_transform'
         """
@@ -215,7 +220,7 @@ class RAGChain:
             )
 
         self._last_retrieved_docs = merged
-        return merged
+        return [doc for doc, _score in merged]
 
     def build(self) -> Runnable:
         """

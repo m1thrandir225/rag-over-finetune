@@ -132,15 +132,15 @@ class RAG:
         sources: list[str] | list[dict] = []
 
         if include_scores:
-            # use cached docs from the chain
-            source_docs = self._chain_builder.last_retrieved_docs
+            # use cached docs from the chain with their RRF scores
+            scored_docs = self._chain_builder.last_retrieved_docs
             sources = [
                 {
                     "content": doc.page_content,
                     "metadata": doc.metadata,
-                    "rank": rank,
+                    "score": float(score),
                 }
-                for rank, doc in enumerate(source_docs, start=1)
+                for doc, score in scored_docs
             ]
         return QueryResult(
             answer=answer,
