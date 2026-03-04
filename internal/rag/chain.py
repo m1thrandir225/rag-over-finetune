@@ -336,3 +336,4 @@ class RAGChain:
         return "\n\n---\n\n".join(doc.page_content for doc in docs)
         return "\n\n---\n\n".join(doc.page_content for doc in docs)
         return "\n\n---\n\n".join(doc.page_content for doc in docs)
+        return "\n\n---\n\n".join(doc.page_content for doc in docs)
