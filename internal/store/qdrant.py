@@ -152,8 +152,11 @@ class QdrantVectorStore(VectorStoreBase):
                 ),
             )
 
-            # Create payload indexes for common metadata filters
-            for field_name in ("source", "tags", "published_at"):
+            for field_name in (
+                "metadata.source",
+                "metadata.tags",
+                "metadata.published_at",
+            ):
                 try:
                     client.create_payload_index(
                         collection_name=self.collection_name,
@@ -249,7 +252,7 @@ class QdrantVectorStore(VectorStoreBase):
                     vector=emb,
                     payload={
                         "page_content": text,
-                        **meta,
+                        "metadata": meta,
                     },
                 )
                 for pid, text, emb, meta in zip(
