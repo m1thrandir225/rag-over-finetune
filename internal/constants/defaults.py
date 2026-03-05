@@ -20,6 +20,10 @@ DEFAULT_RETRIEVAL_MERGE_STRATEGY = "rrf"
 DEFAULT_HYDE_INCLUDE_ORIGINAL_QUERY = True
 DEFAULT_QUERY_TRANSFORM_TIMEOUT_MS = 2000
 
+DEFAULT_RERANKER_ENABLED = False
+DEFAULT_RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-12-v2"
+DEFAULT_RERANKER_TOP_N = 5
+
 DEFAULT_TEST_QUERIES = [
     "Кој е главниот град на Македонија?",
     "Колку е длабоко Охридското Езеро?",

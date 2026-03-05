@@ -12,6 +12,9 @@ from internal.constants import (
     DEFAULT_QDRANT_COLLECTION_NAME,
     DEFAULT_QDRANT_URL,
     DEFAULT_QUERY_TRANSFORM_TIMEOUT_MS,
+    DEFAULT_RERANKER_ENABLED,
+    DEFAULT_RERANKER_MODEL,
+    DEFAULT_RERANKER_TOP_N,
     DEFAULT_RETRIEVAL_K_PER_QUERY,
     DEFAULT_RETRIEVAL_K_TOTAL_BEFORE_RERANK,
     DEFAULT_RETRIEVAL_MERGE_STRATEGY,
@@ -211,6 +214,18 @@ class ConfigLoader:
                     query_transform_timeout_ms=config_data.get(
                         "query_transform_timeout_ms",
                         DEFAULT_QUERY_TRANSFORM_TIMEOUT_MS,
+                    ),
+                    reranker_enabled=config_data.get(
+                        "reranker_enabled",
+                        DEFAULT_RERANKER_ENABLED,
+                    ),
+                    reranker_model=config_data.get(
+                        "reranker_model",
+                        DEFAULT_RERANKER_MODEL,
+                    ),
+                    reranker_top_n=config_data.get(
+                        "reranker_top_n",
+                        DEFAULT_RERANKER_TOP_N,
                     ),
                 )
         except FileNotFoundError:

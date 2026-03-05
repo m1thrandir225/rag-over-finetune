@@ -12,7 +12,7 @@ from langchain_core.runnables import Runnable, RunnableLambda, RunnablePassthrou
 
 from ..config import Config
 from ..llm import LLMService
-from ..processing import EmbeddingService, QueryTransformer, TransformResult
+from ..processing import EmbeddingService, QueryTransformer, Reranker, TransformResult
 from ..store import VectorStoreManager
 
 logger = logging.getLogger(__name__)
@@ -119,6 +119,13 @@ class RAGChain:
             hyde_include_original_query=self._config.hyde_include_original_query,
         )
 
+        self._reranker: Reranker | None = None
+        if config.reranker_enabled:
+            self._reranker = Reranker(
+                model_name=config.reranker_model,
+                device=config.embedding_device,
+            )
+
     @property
     def config(self) -> Config:
         return self._config
@@ -186,6 +193,10 @@ class RAGChain:
             merged = _simple_dedup(flat, k_total)
         else:
             merged = _rrf_merge(ranked_lists, k_total)
+
+        if self._reranker is not None:
+            rerank_top_n = self._config.reranker_top_n
+            merged = self._reranker.rerank(question, merged, rerank_top_n)
 
         elapsed = (time.perf_counter() - t0) * 1_000
 
