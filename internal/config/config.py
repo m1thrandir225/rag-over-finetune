@@ -100,7 +100,8 @@ class Config:
 
     merge_strategy: str  # "rrf" ("mmr" & "score_max" planned)
     hyde_include_original_query: bool
-    # Query Transformations
-    query_transform_mode: str  # "none", "multi_query", "hyde", "step_back"
-    merge_strategy: str  # "rrf", "mmr", "score_max"
-    hyde_include_original_query: bool
+
+    # Re-ranking
+    reranker_enabled: bool
+    reranker_model: str
+    reranker_top_n: int
