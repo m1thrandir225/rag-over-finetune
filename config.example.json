@@ -40,7 +40,6 @@
   "semantic_breakpoint_amount": null,
   "mcp_enabled": true,
   "mcp_servers": {},
-  "query_transform_mode": "multi_query",
   "enabled_transforms": ["multi_query"],
   "max_generated_queries": 2,
   "transform_gate_enabled": true,
@@ -49,6 +48,7 @@
   "merge_strategy": "rrf",
   "hyde_include_original_query": true,
   "query_transform_timeout_ms": 2000,
+  "ingestion_batch_size": 500,
   "reranker_enabled": false,
   "reranker_model": "cross-encoder/ms-marco-MiniLM-L-12-v2",
   "reranker_top_n": 5

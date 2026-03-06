@@ -1,3 +1,4 @@
+import logging
 import sys
 from argparse import Namespace
 
@@ -10,7 +11,32 @@ from ..constants import (
 )
 from .args import args as cli_args
 from .parser import CLIParser
-from .runner import CLIContext, run_demo, run_interactive, run_single_query
+from .context import CLIContext
+from .runner import run_demo, run_interactive, run_single_query
+
+_NOISY_LOGGERS = (
+    "asyncio",
+    "urllib3",
+    "httpx",
+    "httpcore",
+    "sentence_transformers",
+    "qdrant_client",
+    "openai",
+)
+
+
+def _configure_logging() -> None:
+    """
+    Set up root logging so all application log output goes to stdout.
+    Third-party libraries are silenced to WARNING to reduce noise.
+    """
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(levelname)-8s %(name)s: %(message)s",
+        stream=sys.stdout,
+    )
+    for name in _NOISY_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 def _build_context(ns: Namespace) -> CLIContext:
@@ -26,6 +52,8 @@ def _build_context(ns: Namespace) -> CLIContext:
 
 
 def main(argv: list[str] | None = None) -> None:
+    _configure_logging()
+
     parser = CLIParser()
     parser.add_arguments(cli_args)
     ns = parser.parse_args(argv)

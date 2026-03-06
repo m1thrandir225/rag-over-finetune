@@ -24,6 +24,8 @@ DEFAULT_RERANKER_ENABLED = False
 DEFAULT_RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-12-v2"
 DEFAULT_RERANKER_TOP_N = 5
 
+DEFAULT_INGESTION_BATCH_SIZE = 500
+
 DEFAULT_TEST_QUERIES = [
     "Кој е главниот град на Македонија?",
     "Колку е длабоко Охридското Езеро?",
