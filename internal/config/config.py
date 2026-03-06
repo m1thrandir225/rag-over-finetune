@@ -82,3 +82,7 @@ class Config:
     # Semantic Chunking
     semantic_breakpoint_type: str  # "percentile", "standard_deviation", "interquartile", "gradient"
     semantic_breakpoint_amount: Optional[float]
+
+    # MCP Tools Configuration
+    mcp_enabled: bool
+    mcp_servers: dict[str, dict]

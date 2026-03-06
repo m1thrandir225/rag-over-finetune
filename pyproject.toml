@@ -25,6 +25,8 @@ dependencies = [
     "qdrant-client>=1.17.0",
     "langchain-qdrant>=1.1.0",
     "langchain-experimental>=0.3.4",
+    "langchain-mcp-adapters>=0.1.0",
+    "fastmcp>=0.1.0",
 ]
 
 [project.optional-dependencies]

@@ -175,6 +175,9 @@ class ConfigLoader:
                     semantic_breakpoint_amount=config_data.get(
                         "semantic_breakpoint_amount"
                     ),
+                    # MCP Tools Configuration
+                    mcp_enabled=config_data.get("mcp_enabled", False),
+                    mcp_servers=config_data.get("mcp_servers", {}),
                 )
         except FileNotFoundError:
             print(f"Error: The config file '{self.path}' was not found.")
