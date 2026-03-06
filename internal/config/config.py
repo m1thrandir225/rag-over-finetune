@@ -90,3 +90,15 @@ class Config:
     mcp_servers: dict[str, dict]
     # Query Transformations
     query_transform_mode: str  # "none", "multi_query", "hyde", "step_back"
+    # Query Transform Pipeline
+    enabled_transforms: list[str]  # ["multi_query"], ["step_back", "multi_query"]
+    max_generated_queries: int
+    transform_gate_enabled: bool
+    query_transform_timeout_ms: int
+
+    # Retrieval Merge Controls for transformed queries
+    k_per_query: int
+    k_total_before_rerank: int
+
+    merge_strategy: str  # "rrf", "mmr", "score_max"
+    hyde_include_original_query: bool

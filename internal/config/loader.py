@@ -5,9 +5,16 @@ from dotenv import load_dotenv
 
 from internal.constants import (
     DEFAULT_ENV_PATH,
+    DEFAULT_HYDE_INCLUDE_ORIGINAL_QUERY,
+    DEFAULT_MAX_GENERATED_QUERIES,
     DEFAULT_OLLAMA_URL,
     DEFAULT_QDRANT_COLLECTION_NAME,
     DEFAULT_QDRANT_URL,
+    DEFAULT_QUERY_TRANSFORM_TIMEOUT_MS,
+    DEFAULT_RETRIEVAL_K_PER_QUERY,
+    DEFAULT_RETRIEVAL_K_TOTAL_BEFORE_RERANK,
+    DEFAULT_RETRIEVAL_MERGE_STRATEGY,
+    DEFAULT_TRANSFORM_GATE_ENABLED,
 )
 
 from .config import (
@@ -180,6 +187,32 @@ class ConfigLoader:
                     mcp_servers=config_data.get("mcp_servers", {}),
                     query_transform_mode=config_data.get(
                         "query_transform_mode", "multi_query"
+                    ),
+                    enabled_transforms=config_data.get(
+                        "enabled_transforms", ["multi_query"]
+                    ),
+                    max_generated_queries=config_data.get(
+                        "max_generated_queries", DEFAULT_MAX_GENERATED_QUERIES
+                    ),
+                    transform_gate_enabled=config_data.get(
+                        "transform_gate_enabled", DEFAULT_TRANSFORM_GATE_ENABLED
+                    ),
+                    k_per_query=config_data.get(
+                        "k_per_query", DEFAULT_RETRIEVAL_K_PER_QUERY
+                    ),
+                    k_total_before_rerank=config_data.get(
+                        "k_total_before_rerank", DEFAULT_RETRIEVAL_K_TOTAL_BEFORE_RERANK
+                    ),
+                    merge_strategy=config_data.get(
+                        "merge_strategy", DEFAULT_RETRIEVAL_MERGE_STRATEGY
+                    ),
+                    hyde_include_original_query=config_data.get(
+                        "hyde_include_original_query",
+                        DEFAULT_HYDE_INCLUDE_ORIGINAL_QUERY,
+                    ),
+                    query_transform_timeout_ms=config_data.get(
+                        "query_transform_timeout_ms",
+                        DEFAULT_QUERY_TRANSFORM_TIMEOUT_MS,
                     ),
                 )
         except FileNotFoundError:

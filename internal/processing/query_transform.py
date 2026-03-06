@@ -1,110 +1,271 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import Enum
-from typing import TYPE_CHECKING
+import logging
+import time
 
-if TYPE_CHECKING:
-    from langchain_core.language_models import BaseChatModel
+from langchain_core.language_models import BaseChatModel
 
-# TODO: Translate to Macedonian
-_MULTI_QUERY_PROMPT = """You are an expert at rephrasing questions for information retrieval.
-Given the following question, generate 2-3 alternative phrasings that a user might use to search for the same information.
-Write each alternative on a new line. Do not include numbering or bullets.
-Respond only with the alternative questions, one per line.
+from .query_transform_models import TransformResult, TransformStageResult
+from .query_transform_prompts import (
+    _COMPLEX_PATTERNS,
+    _HYDE_PROMPT,
+    _MIN_WORDS_FOR_TRANSFORM,
+    _MULTI_QUERY_PROMPT,
+    _STEP_BACK_PROMPT,
+)
 
-Original question: {question}"""
-
-# TODO: Translate to Macedonian
-_HYDE_PROMPT = """Based on the following question, write a short, factual paragraph that could appear in a document answering this question.
-Write as if you are excerpting from a relevant Wikipedia article or textbook. Use the same language as the question.
-Do not say you don't know; write a plausible answer.
-
-Question: {question}
-
-Hypothetical answer:"""
-
-_STEP_BACK_PROMPT = """You are an expert at breaking down complex questions into simpler, more general ones.
-Given the following question, write a single more general "step-back" question that would help gather broader context.
-The step-back question should be conceptual and abstract, not specific to the original question's details.
-
-Original question: {question}
-
-Step-back question:"""
+logger = logging.getLogger(__name__)
 
 
-class QueryTransformMode(str, Enum):
-    NONE = "none"
-    MULTI_QUERY = "multi_query"
-    HYDE = "hyde"
-    STEP_BACK = "step_back"
-
-
-@dataclass
-class QueryTransformResult:
+def should_transform(query: str, *, gate_enabled: bool = True) -> bool:
     """
-    Result of query transformation.
-    - queries: text(s) to use for retrieval
-    - use_embedding_of_first: if True, embed queries[0] and search by vector (HyDE)
-    """
+    Lightweight, rule-based gate.
 
-    queries: list[str]
-    use_embedding_of_first: bool = False
+    Returns True when the query is complex enough to benefit from
+    transformation.  When *gate_enabled* is False, always returns True.
+    """
+    if not gate_enabled:
+        return True
+
+    words = query.split()
+    if len(words) < _MIN_WORDS_FOR_TRANSFORM:
+        logger.debug(
+            "Gate: skipping transforms (query too short: %d words)", len(words)
+        )
+        return False
+
+    for pattern in _COMPLEX_PATTERNS:
+        if pattern.search(query):
+            logger.debug("Gate: enabling transforms (complex pattern match)")
+            return True
+
+    # Default: allow transforms for medium+ length queries
+    if len(words) >= 5:
+        return True
+
+    logger.debug("Gate: skipping transforms (short/simple query)")
+    return False
 
 
 class QueryTransformer:
     """
-    Transforms user queries before retrieval to improve recall.
+    Composable query-transformation pipeline.
+
+    Parameters
+    ----------
+    llm : BaseChatModel
+        The language model used to generate query variants.
+    enabled_transforms : list[str]
+        Ordered list of transform names to apply, e.g.
+        ``["step_back", "multi_query"]``.  Executed left-to-right.
+        If empty or ``["none"]``, no transformation is performed.
+    max_generated_queries : int
+        How many alternative queries multi_query should generate.
+    gate_enabled : bool
+        Whether to run the lightweight gate before transforming.
+    timeout_ms : int
+        Per-LLM-call soft timeout (currently advisory / for logging).
+    hyde_include_original_query : bool
+        If True, HyDE also includes the original query alongside the
+        hypothetical document for retrieval.
     """
 
     def __init__(
         self,
         llm: BaseChatModel,
-        mode: QueryTransformMode = QueryTransformMode.MULTI_QUERY,
+        *,
+        enabled_transforms: list[str] | None = None,
+        max_generated_queries: int = 2,
+        gate_enabled: bool = True,
+        timeout_ms: int = 2_000,
+        hyde_include_original_query: bool = True,
     ) -> None:
         self._llm = llm
-        self._mode = mode
+        self._max_generated_queries = max_generated_queries
+        self._gate_enabled = gate_enabled
+        self._timeout_ms = timeout_ms
+        self._hyde_include_original_query = hyde_include_original_query
 
-    def transform(self, query: str) -> QueryTransformResult:
-        """
-        Transform the query into one or more retrieval inputs.
-        """
+        if enabled_transforms is not None:
+            self._transforms = [t for t in enabled_transforms if t != "none"]
+        else:
+            self._transforms = []
+
+    def transform(self, query: str) -> TransformResult:
+        t0 = time.perf_counter()
+
         if not query.strip():
-            return QueryTransformResult(queries=[query])
+            return TransformResult(
+                original_query=query,
+                expanded_queries=[query],
+                total_duration_ms=0.0,
+            )
 
-        match self._mode:
-            case QueryTransformMode.NONE:
-                return QueryTransformResult(queries=[query])
-            case QueryTransformMode.MULTI_QUERY:
-                return self._multi_query(query)
-            case QueryTransformMode.HYDE:
-                return self._hyde(query)
-            case QueryTransformMode.STEP_BACK:
-                return self._step_back(query)
-            case _:
-                return QueryTransformResult(queries=[query])
+        if not self._transforms:
+            return TransformResult(
+                original_query=query,
+                expanded_queries=[query],
+                total_duration_ms=_elapsed_ms(t0),
+            )
 
-    def _multi_query(self, query: str) -> QueryTransformResult:
-        prompt = _MULTI_QUERY_PROMPT.format(question=query)
-        response = self._llm.invoke(prompt)
-        text = response.content if hasattr(response, "content") else str(response)
-        lines = [line.strip() for line in text.strip().split("\n") if line.strip()]
-        queries = [query] + lines[:3]
-        return QueryTransformResult(queries=queries)
+        if not should_transform(query, gate_enabled=self._gate_enabled):
+            logger.info(
+                "QueryTransform: gate skipped transforms for query=%r", query[:80]
+            )
+            return TransformResult(
+                original_query=query,
+                expanded_queries=[query],
+                gate_skipped=True,
+                total_duration_ms=_elapsed_ms(t0),
+            )
 
-    def _hyde(self, query: str) -> QueryTransformResult:
-        prompt = _HYDE_PROMPT.format(question=query)
-        response = self._llm.invoke(prompt)
-        text = response.content if hasattr(response, "content") else str(response)
-        hypothetical = text.strip() or query
-        return QueryTransformResult(
-            queries=[hypothetical],
-            use_embedding_of_first=True,
+        accumulated_queries: list[str] = [query]
+        use_embedding_of: set[int] = set()
+        applied: list[str] = []
+        stages: list[TransformStageResult] = []
+
+        for transform_name in self._transforms:
+            handler = self._get_handler(transform_name)
+            if handler is None:
+                logger.warning("Unknown transform '%s' -- skipping", transform_name)
+                continue
+
+            stage_t0 = time.perf_counter()
+            try:
+                new_queries, embed_indices = handler(query, accumulated_queries)
+            except Exception:
+                logger.exception(
+                    "Transform '%s' failed -- skipping stage", transform_name
+                )
+                new_queries, embed_indices = [], []
+            stage_ms = _elapsed_ms(stage_t0)
+
+            # Record indices relative to the global accumulated list
+            offset = len(accumulated_queries)
+            for idx in embed_indices:
+                use_embedding_of.add(offset + idx)
+
+            accumulated_queries.extend(new_queries)
+            applied.append(transform_name)
+            stages.append(
+                TransformStageResult(
+                    transform=transform_name,
+                    generated_queries=new_queries,
+                    duration_ms=stage_ms,
+                )
+            )
+            logger.debug(
+                "Transform '%s' generated %d queries in %.1f ms",
+                transform_name,
+                len(new_queries),
+                stage_ms,
+            )
+
+        total_ms = _elapsed_ms(t0)
+
+        result = TransformResult(
+            original_query=query,
+            expanded_queries=accumulated_queries,
+            use_embedding_of=use_embedding_of,
+            applied_transforms=applied,
+            stages=stages,
+            gate_skipped=False,
+            total_duration_ms=total_ms,
         )
 
-    def _step_back(self, query: str) -> QueryTransformResult:
-        prompt = _STEP_BACK_PROMPT.format(question=query)
+        logger.info(
+            "QueryTransform complete: input=%r | transforms=%s | "
+            "expanded=%d queries | embed_of=%s | total=%.1f ms | "
+            "stage_breakdown=%s",
+            query[:80],
+            applied,
+            len(accumulated_queries),
+            use_embedding_of or "none",
+            total_ms,
+            [
+                {
+                    "stage": s.transform,
+                    "generated": len(s.generated_queries),
+                    "ms": round(s.duration_ms, 1),
+                }
+                for s in stages
+            ],
+        )
+
+        return result
+
+    def _get_handler(self, name: str):
+        return {
+            "multi_query": self._handle_multi_query,
+            "hyde": self._handle_hyde,
+            "step_back": self._handle_step_back,
+        }.get(name)
+
+    def _handle_multi_query(
+        self,
+        original_query: str,
+        _current: list[str],
+    ) -> tuple[list[str], list[int]]:
+        """
+        Generate alternative phrasings of the question
+        """
+
+        prompt = _MULTI_QUERY_PROMPT.format(
+            question=original_query, n=self._max_generated_queries
+        )
+        text = self._invoke_llm(prompt)
+        lines = [line.strip() for line in text.strip().split("\n") if line.strip()]
+        return lines[: self._max_generated_queries], []
+
+    def _handle_hyde(
+        self,
+        original_query: str,
+        _current: list[str],
+    ) -> tuple[list[str], list[int]]:
+        """
+        Generate a hypothetical document and optionally include the original
+        query alongside it for dual-channel retrieval.
+        """
+
+        prompt = _HYDE_PROMPT.format(question=original_query)
+        text = self._invoke_llm(prompt)
+        hypothetical = text.strip()
+        if not hypothetical:
+            return [], []
+
+        new_queries = [hypothetical]
+        embed_indices = [0]  # embed the hypothetical doc text
+
+        if self._hyde_include_original_query:
+            logger.debug("HyDE dual-channel: original query retained for retrieval")
+
+        return new_queries, embed_indices
+
+    def _handle_step_back(
+        self,
+        original_query: str,
+        _current: list[str],
+    ) -> tuple[list[str], list[int]]:
+        """
+        Generate a broader step-back question
+        """
+
+        prompt = _STEP_BACK_PROMPT.format(question=original_query)
+        text = self._invoke_llm(prompt)
+        step_back = text.strip()
+        if not step_back:
+            return [], []
+        return [step_back], []
+
+    def _invoke_llm(self, prompt: str) -> str:
         response = self._llm.invoke(prompt)
-        text = response.content if hasattr(response, "content") else str(response)
-        step_back = text.strip() or query
-        return QueryTransformResult(queries=[step_back, query])
+        content: object = response.content if hasattr(response, "content") else response
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            return " ".join(str(part) for part in content)
+        return str(content)
+
+
+def _elapsed_ms(t0: float) -> float:
+    return (time.perf_counter() - t0) * 1_000
