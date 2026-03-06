@@ -101,6 +101,9 @@ class Config:
     merge_strategy: str  # "rrf" ("mmr" & "score_max" planned)
     hyde_include_original_query: bool
 
+    # Ingestion
+    ingestion_batch_size: int
+
     # Re-ranking
     reranker_enabled: bool
     reranker_model: str

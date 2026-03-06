@@ -238,87 +238,6 @@ class RAGChain:
         Build the RAG chain
         """
 
-        t0 = time.perf_counter()
-
-        result: TransformResult = self._query_transformer.transform(question)
-
-        k_per = self._config.k_per_query
-        k_total = self._config.k_total_before_rerank
-        merge_strategy = self._config.merge_strategy
-
-        ranked_lists: list[list[Document]] = []
-
-        for idx, q in enumerate(result.expanded_queries):
-            if idx in result.use_embedding_of:
-                # HyDE path: embed the text and search by vector
-                embedding = self._embedding_service.embed_query(q)
-                docs = self._vector_store.similarity_search_by_vector(
-                    embedding=embedding, k=k_per
-                )
-                logger.debug(
-                    "Retrieval (embed) query[%d]: %d docs (%.40s…)",
-                    idx,
-                    len(docs),
-                    q,
-                )
-            else:
-                docs = self._vector_store.similarity_search(query=q, k=k_per)
-                logger.debug(
-                    "Retrieval (text) query[%d]: %d docs (%.40s…)",
-                    idx,
-                    len(docs),
-                    q,
-                )
-            ranked_lists.append(docs)
-
-        if len(ranked_lists) <= 1 or merge_strategy != "rrf":
-            flat = [
-                doc for rl in ranked_lists for doc in rl
-            ]  # flatten the ranked lists into a single one
-            merged = _simple_dedup(flat, k_total)
-        else:
-            merged = _rrf_merge(ranked_lists, k_total)
-
-        elapsed = (time.perf_counter() - t0) * 1_000
-
-        # Overlap stats (TODO: remove)
-        if len(ranked_lists) > 1:
-            per_list_keys = [{_doc_key(d) for d in rl} for rl in ranked_lists]
-            total_raw = sum(len(rl) for rl in ranked_lists)
-            unique_keys = set().union(*per_list_keys) if per_list_keys else set()
-            overlap_count = total_raw - len(unique_keys)
-            logger.info(
-                "Retrieve: %d queries -> %d raw docs, %d unique, "
-                "%d overlapping -> %d after merge (%s) in %.1f ms "
-                "(transforms=%s, gate_skipped=%s)",
-                len(result.expanded_queries),
-                total_raw,
-                len(unique_keys),
-                overlap_count,
-                len(merged),
-                merge_strategy,
-                elapsed,
-                result.applied_transforms,
-                result.gate_skipped,
-            )
-        else:
-            logger.info(
-                "Retrieve: %d queries -> %d docs in %.1f ms "
-                "(transforms=%s, gate_skipped=%s)",
-                len(result.expanded_queries),
-                len(merged),
-                elapsed,
-                result.applied_transforms,
-                result.gate_skipped,
-            )
-
-        return merged
-
-    def build(self) -> Runnable:
-        """
-        Build the RAG chain
-        """
-
         prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", self.config.system_prompt),
@@ -344,7 +263,4 @@ class RAGChain:
         Formats documents into a context string
         """
 
-        return "\n\n---\n\n".join(doc.page_content for doc in docs)
-        return "\n\n---\n\n".join(doc.page_content for doc in docs)
-        return "\n\n---\n\n".join(doc.page_content for doc in docs)
         return "\n\n---\n\n".join(doc.page_content for doc in docs)

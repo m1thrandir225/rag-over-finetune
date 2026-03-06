@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any, Iterable, List, Optional, Tuple
 from uuid import uuid4
 
@@ -9,6 +10,8 @@ from tqdm import tqdm
 from ..config import Config
 from ..processing import EmbeddingService
 from .vector import _DEFAULT_MAX_BATCH, VectorStoreBase
+
+logger = logging.getLogger(__name__)
 
 # Qdrant's HTTP API has a default 32MB payload limit. Because each point includes:
 # - the embedding vector
@@ -210,26 +213,124 @@ class QdrantVectorStore(VectorStoreBase):
             return []
         if len(filtered_pairs) != len(texts):
             skipped = len(texts) - len(filtered_pairs)
-            print(f"Skipping {skipped} empty chunk(s) before embedding.")
+            logger.warning("Skipping %d empty chunk(s) before embedding.", skipped)
         texts = [text for text, _ in filtered_pairs]
         metadatas = [meta for _, meta in filtered_pairs]
 
-        print(f"Embedding {len(texts)} chunks...")
-        embeddings = self._embedding_service.embed_documents(texts)
-        if not embeddings:
-            raise ValueError("Embedding service returned no embeddings.")
-        if len(embeddings) != len(texts):
-            raise ValueError(
-                f"Embedding count mismatch: got {len(embeddings)} embeddings for {len(texts)} texts."
-            )
+        total = len(texts)
+        ingestion_size = self._config.ingestion_batch_size
+        collection_ready = False
+        all_ids: list[str] = []
+        succeeded_count = 0
+        failed_count = 0
+        failed_ranges: list[tuple[int, int]] = []
 
-        vector_size = len(embeddings[0])
-        self._ensure_collection(vector_size=vector_size)
+        logger.info(
+            "Starting ingestion: %d texts in batches of %d (%d batches).",
+            total,
+            ingestion_size,
+            -(-total // ingestion_size),  # ceiling division
+        )
 
+        pbar = tqdm(
+            range(0, total, ingestion_size),
+            desc="Ingesting",
+            unit="batch",
+        )
+        for batch_start in pbar:
+            batch_end = min(batch_start + ingestion_size, total)
+            b_texts = texts[batch_start:batch_end]
+            b_metas = metadatas[batch_start:batch_end]
+            n = batch_end - batch_start
+
+            # --- Embed this ingestion batch ---
+            try:
+                b_embeddings = self._embedding_service.embed_documents(b_texts)
+            except Exception as exc:
+                failed_count += n
+                failed_ranges.append((batch_start, batch_end))
+                logger.warning(
+                    "Embedding failed for batch [%d:%d] (%d texts), skipping: %s",
+                    batch_start,
+                    batch_end,
+                    n,
+                    exc,
+                )
+                continue
+
+            if not b_embeddings or len(b_embeddings) != len(b_texts):
+                failed_count += n
+                failed_ranges.append((batch_start, batch_end))
+                got = len(b_embeddings) if b_embeddings else 0
+                logger.warning(
+                    "Embedding count mismatch for batch [%d:%d]: "
+                    "got %d embeddings for %d texts, skipping.",
+                    batch_start,
+                    batch_end,
+                    got,
+                    n,
+                )
+                continue
+
+            # --- Ensure collection exists + upsert this batch ---
+            # Both are in one try/except so a transient Qdrant failure
+            # (e.g. timeout on collection creation) skips the batch and
+            # the next successful batch retries collection creation
+            # (collection_ready stays False until _ensure_collection succeeds).
+            try:
+                if not collection_ready:
+                    vector_size = len(b_embeddings[0])
+                    self._ensure_collection(vector_size=vector_size)
+                    collection_ready = True
+
+                batch_ids = self._upsert_batch(
+                    b_texts, b_metas, b_embeddings, batch_size
+                )
+                all_ids.extend(batch_ids)
+                succeeded_count += n
+            except Exception as exc:
+                failed_count += n
+                failed_ranges.append((batch_start, batch_end))
+                logger.warning(
+                    "Store operation failed for batch [%d:%d] (%d texts), skipping: %s",
+                    batch_start,
+                    batch_end,
+                    n,
+                    exc,
+                )
+                continue
+
+            pbar.set_postfix(ok=succeeded_count, fail=failed_count)
+
+        # --- Summary ---
+        logger.info(
+            "Ingestion complete: %d/%d texts succeeded, %d failed across %d batch(es).",
+            succeeded_count,
+            total,
+            failed_count,
+            len(failed_ranges),
+        )
+        if failed_ranges:
+            logger.warning("Failed batch ranges: %s", failed_ranges)
+
+        return all_ids
+
+    def _upsert_batch(
+        self,
+        texts: list[str],
+        metadatas: list[dict],
+        embeddings: list[list[float]],
+        batch_size: int,
+    ) -> list[str]:
+        """
+        Upsert a single ingestion batch into Qdrant using payload-aware
+        slicing and binary-split retry on payload-too-large errors.
+        """
         client = self.client
         models = self.models
         all_ids: list[str] = []
         max_batch_items = max(1, int(min(batch_size, 10_000)))
+
         slices = list(
             _iter_size_bounded_slices(
                 texts=texts,
@@ -290,7 +391,7 @@ class QdrantVectorStore(VectorStoreBase):
                 _upsert_with_split_retry(start, mid)
                 _upsert_with_split_retry(mid, end)
 
-        for start, end in tqdm(slices, desc="Inserting into Qdrant", unit="batch"):
+        for start, end in slices:
             _upsert_with_split_retry(start, end)
 
         return all_ids

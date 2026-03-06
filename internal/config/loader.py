@@ -7,6 +7,7 @@ from internal.constants import (
     DEFAULT_ENABLED_QUERY_TRANSFORMS,
     DEFAULT_ENV_PATH,
     DEFAULT_HYDE_INCLUDE_ORIGINAL_QUERY,
+    DEFAULT_INGESTION_BATCH_SIZE,
     DEFAULT_MAX_GENERATED_QUERIES,
     DEFAULT_OLLAMA_URL,
     DEFAULT_QDRANT_COLLECTION_NAME,
@@ -214,6 +215,10 @@ class ConfigLoader:
                     query_transform_timeout_ms=config_data.get(
                         "query_transform_timeout_ms",
                         DEFAULT_QUERY_TRANSFORM_TIMEOUT_MS,
+                    ),
+                    ingestion_batch_size=config_data.get(
+                        "ingestion_batch_size",
+                        DEFAULT_INGESTION_BATCH_SIZE,
                     ),
                     reranker_enabled=config_data.get(
                         "reranker_enabled",
