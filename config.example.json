@@ -40,5 +40,13 @@
   "semantic_breakpoint_amount": null,
   "mcp_enabled": true,
   "mcp_servers": {},
-  "query_transform_mode": "multi_query"
+  "query_transform_mode": "multi_query",
+  "enabled_transforms": ["multi_query"],
+  "max_generated_queries": 2,
+  "transform_gate_enabled": true,
+  "k_per_query": 4,
+  "k_total_before_rerank": 10,
+  "merge_strategy": "rrf",
+  "hyde_include_original_query": true,
+  "query_transform_timeout_ms": 2000
 }

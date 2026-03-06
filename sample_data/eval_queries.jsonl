@@ -1,0 +1,6 @@
+{"query": "Кој е главниот град на Македонија?", "relevant_snippets": ["Скопје", "главен град"]}
+{"query": "Колку е длабоко Охридското Езеро?", "relevant_snippets": ["Охридско Езеро", "длабочина", "длабоко"]}
+{"query": "Што е тавче гравче?", "relevant_snippets": ["тавче гравче", "грав"]}
+{"query": "Кој ја создал кирилицата?", "relevant_snippets": ["Кирил", "Методиј", "кирилица"]}
+{"query": "Кога е роден Александар Македонски?", "relevant_snippets": ["Александар", "роден"]}
+//TODO: add more queries that are not in the dataset and can actually evaluate the retrieval system
