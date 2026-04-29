@@ -221,29 +221,29 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Evaluate retrieval strategies (query transforms)."
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--config",
         default=DEFAULT_CONFIG_PATH,
         help="Path to config.json",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--dataset",
         default=None,
         help="Path to JSONL evaluation dataset. Falls back to default test queries.",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--k",
         type=int,
         default=5,
         help="Number of documents to retrieve per query (Recall@k, MRR@k).",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--strategies",
         nargs="*",
         default=None,
         help=f"Strategies to evaluate. Choices: {list(STRATEGIES.keys())}",
     )
-    parser.add_argument(
+    _ = parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable DEBUG logging.",

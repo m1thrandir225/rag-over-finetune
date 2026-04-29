@@ -27,6 +27,7 @@ dependencies = [
     "langchain-experimental>=0.3.4",
     "langchain-mcp-adapters>=0.1.0",
     "fastmcp>=0.1.0",
+    "simsimd>=6.5.15",
 ]
 
 [project.optional-dependencies]
