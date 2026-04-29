@@ -108,3 +108,11 @@ class Config:
     reranker_enabled: bool
     reranker_model: str
     reranker_top_n: int
+
+    # Hierarchical Indexing (small-to-big retrieval)
+    use_hierarchical_indexing: bool
+    parent_chunk_size: int
+    parent_chunk_overlap: int
+    child_chunk_size: int
+    child_chunk_overlap: int
+    qdrant_parent_collection_name: Optional[str]

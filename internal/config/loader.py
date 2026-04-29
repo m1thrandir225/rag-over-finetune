@@ -4,13 +4,18 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from internal.constants import (
+    DEFAULT_CHILD_CHUNK_OVERLAP,
+    DEFAULT_CHILD_CHUNK_SIZE,
     DEFAULT_ENABLED_QUERY_TRANSFORMS,
     DEFAULT_ENV_PATH,
     DEFAULT_HYDE_INCLUDE_ORIGINAL_QUERY,
     DEFAULT_INGESTION_BATCH_SIZE,
     DEFAULT_MAX_GENERATED_QUERIES,
     DEFAULT_OLLAMA_URL,
+    DEFAULT_PARENT_CHUNK_OVERLAP,
+    DEFAULT_PARENT_CHUNK_SIZE,
     DEFAULT_QDRANT_COLLECTION_NAME,
+    DEFAULT_QDRANT_PARENT_COLLECTION_NAME,
     DEFAULT_QDRANT_URL,
     DEFAULT_QUERY_TRANSFORM_TIMEOUT_MS,
     DEFAULT_RERANKER_ENABLED,
@@ -20,6 +25,7 @@ from internal.constants import (
     DEFAULT_RETRIEVAL_K_TOTAL_BEFORE_RERANK,
     DEFAULT_RETRIEVAL_MERGE_STRATEGY,
     DEFAULT_TRANSFORM_GATE_ENABLED,
+    DEFAULT_USE_HIERARCHICAL_INDEXING,
 )
 
 from .config import (
@@ -231,6 +237,30 @@ class ConfigLoader:
                     reranker_top_n=config_data.get(
                         "reranker_top_n",
                         DEFAULT_RERANKER_TOP_N,
+                    ),
+                    use_hierarchical_indexing=config_data.get(
+                        "use_hierarchical_indexing",
+                        DEFAULT_USE_HIERARCHICAL_INDEXING,
+                    ),
+                    parent_chunk_size=config_data.get(
+                        "parent_chunk_size",
+                        DEFAULT_PARENT_CHUNK_SIZE,
+                    ),
+                    parent_chunk_overlap=config_data.get(
+                        "parent_chunk_overlap",
+                        DEFAULT_PARENT_CHUNK_OVERLAP,
+                    ),
+                    child_chunk_size=config_data.get(
+                        "child_chunk_size",
+                        DEFAULT_CHILD_CHUNK_SIZE,
+                    ),
+                    child_chunk_overlap=config_data.get(
+                        "child_chunk_overlap",
+                        DEFAULT_CHILD_CHUNK_OVERLAP,
+                    ),
+                    qdrant_parent_collection_name=config_data.get(
+                        "qdrant_parent_collection_name",
+                        DEFAULT_QDRANT_PARENT_COLLECTION_NAME,
                     ),
                 )
         except FileNotFoundError:
